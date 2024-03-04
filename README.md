@@ -4,7 +4,7 @@
 # AI Stock Trading System
 -------------------------------------------------------------------------------------------------------------
 # Company and System Overview
-## We offer a SaaS based subscription services that provides end users the ability to set up their trading postfolio and  automate their stock trading utilizing our AI based system
+## We offer a SaaS based subscription services that provides end users the ability to set up their trading portfolio and automate their stock trading utilizing our AI based system
 
 
 # Operations
