@@ -7,6 +7,9 @@
 ### We offer a SaaS based subscription services that provides end users the ability to set up their trading portfolio and automate their stock trading utilizing our AI based system
 ---------------------------------------------------------------------------------------
 ## Project Background
+The objective is to build a trading system that at its core are our AI models based on Deep Reinforcement Learning (DRL) in the domain of stock trading. By leveraging advanced machine learning techniques, we aim to develop a system capable of making informed trading decisions autonomously, based on the investor's portfolio. This involves the creation of a model that is traind by many metrics that produce a system that can adhere to the investor's portfolio, be compliant, and execute trades with the goal of maximizing returns. The demonstration will cover the setup, training, monitoring, and evaluation of the DRL model, showcasing its potential to outperform traditional trading strategies.
+
+In addition to the technical implementation, we will explore the theoretical foundations of reinforcement learning and its suitability for financial markets. This enhances the traditional models that preditct the estimated stock trading price, and with additional metrics it will produce better predictions as to trade based on size, market time, market status, and more. This also includes discussing the challenges of applying DRL in a highly volatile environment, such as stock trading, and the strategies used to mitigate these risks. Our demonstration aims to provide a comprehensive overview of how deep reinforcement learning can be utilized to innovate in the field of stock trading, offering insights into both its capabilities and limitations.
 
 
 
