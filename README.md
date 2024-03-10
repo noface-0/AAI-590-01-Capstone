@@ -13,7 +13,8 @@ In addition to the technical implementation, we will explore the theoretical fou
 
 ## Project Management Flow and Tool
 - Using Jira
-![image](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/ed31a363-7471-44b7-b417-4acf4873bd6f)
+![image](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/c1e30227-6ad1-4c20-9f36-631acbd7605d)
+
  
 
 
