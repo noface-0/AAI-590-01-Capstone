@@ -11,6 +11,10 @@ The objective is to build a trading system that at its core are our AI models ba
 
 In addition to the technical implementation, we will explore the theoretical foundations of reinforcement learning and its suitability for financial markets. This enhances the traditional models that preditct the estimated stock trading price, and with additional metrics it will produce better predictions as to trade based on size, market time, market status, and more. This also includes discussing the challenges of applying DRL in a highly volatile environment, such as stock trading, and the strategies used to mitigate these risks. Our demonstration aims to provide a comprehensive overview of how deep reinforcement learning can be utilized to innovate in the field of stock trading, offering insights into both its capabilities and limitations.
 
+## Project Management Flow and Tool
+- Using Jira
+![image](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/ed31a363-7471-44b7-b417-4acf4873bd6f)
+ 
 
 
 
