@@ -8,7 +8,7 @@ import logging
 import torch
 
 from environments.base import StockTradingEnv
-from training.train_test import train, test
+from training.dlr import train, test
 from config.indicators import INDICATORS
 from config.tickers import DOW_30_TICKER
 from config.models import ERL_PARAMS, SAC_PARAMS
