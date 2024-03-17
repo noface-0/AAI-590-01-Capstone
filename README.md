@@ -43,3 +43,18 @@ Index (D=Discussion, B=Brainstorm, A=Adam, J=Javon, N=Nathan)
 - Start project documentation (A)
 - Get Project Management system going (A,J,N)
 - Setup next meeting : 3/14/24
+
+## Team meeting #3 Date 3/14/2024
+- Updates on progress
+- Discussion about the Project Management tool Jira: Best Practices (A)
+- Work done on the dataset as related to the scrubbing, transformation,and feature engineering (J)
+- Work done on the MRL model (N)
+- What is needed on the Portfolio task (N, A)
+- Adam to work on the code for the Portfolio input
+- Nathan and Javon to go over the logistics and fields for the Portfolio
+- decided to do morning written standup emulation with short written updates and if any obstacles
+- Setup meeting with Professor Marbut @ Tue 3/19/2024 3:00 PM (PST)
+- Setup next Team meeting 3/21/24 @ 3:00 PST
+
+ 
+
