@@ -13,6 +13,8 @@ holidays
 
 python-dotenv
 torch
+optuna
+joblib
 
 # pygame latest version
 pygame>=2.1.3

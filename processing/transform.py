@@ -4,9 +4,11 @@ import alpaca_trade_api as tradeapi
 import exchange_calendars as tc
 import numpy as np
 import pandas as pd
+
 from concurrent.futures import ThreadPoolExecutor
 from sklearn.preprocessing import StandardScaler
-
+from joblib import dump, load
+from models.fnn import fnn_prediction
 from processing.indicators import process_indicators
 from utils.utils import get_var
 
@@ -217,7 +219,7 @@ class AlpacaProcessor:
         return new_df
 
     def add_technical_indicators(
-        self, df
+        self, df, add_fnn: bool=True
     ) -> pd.DataFrame():
         print("Started adding Indicators")
         # Store the original data type of the 'timestamp' column
@@ -245,17 +247,32 @@ class AlpacaProcessor:
         else:
             indicator_df["timestamp"] = \
                 indicator_df["timestamp"].astype(original_timestamp_dtype)
+        
+        # adding FNN to indicators
+        if add_fnn:
+            indicator_df = fnn_prediction(indicator_df)
 
         print("Finished adding Indicators")
         return indicator_df
     
-    def preprocess_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def preprocess_data(
+            self, 
+            df: pd.DataFrame, 
+            save_scaler: bool=False
+    ) -> pd.DataFrame:
         numerical_cols = df.select_dtypes(
             include=['float64', 'int64']).columns
         
-        scaler = StandardScaler()
-        
-        df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+        if save_scaler:
+            scaler = StandardScaler()
+
+            df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+
+            dump(scaler, 'models/runs/drl/scaler.joblib')
+        else:
+            scaler = load('models/runs/drl/scaler.joblib')
+            df[numerical_cols] = scaler.transform(df[numerical_cols])
+
         
         return df
 
