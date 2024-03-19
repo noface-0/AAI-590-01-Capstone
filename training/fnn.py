@@ -166,6 +166,12 @@ def train(
             api_secret=api_secret,
             api_url=api_url
         )
+    X_train, _, _, train_loader, val_loader \
+        = prepare_data(
+            data=data, 
+            forecast_steps=forecast_steps,
+            save_scaler=True
+        )
 
     study = optuna.create_study(direction='minimize')
     study.optimize(
@@ -182,13 +188,6 @@ def train(
     best_params = study.best_trial.params
     lr = best_params['lr']
     hidden_sizes = best_params['hidden_sizes']
-    
-    X_train, _, _, train_loader, val_loader \
-        = prepare_data(
-            data=data, 
-            forecast_steps=forecast_steps,
-            save_scaler=True
-        )
     
     model = FNN(
         input_size=X_train.shape[1],
@@ -278,9 +277,9 @@ def test(
     mse = mean_squared_error(all_targets, all_outputs)
     
     evaluation_results = {
-        'Validation Loss': val_loss,
-        'Mean Absolute Error': mae,
-        'Mean Squared Error': mse
+        'Validation Loss': float(val_loss),
+        'Mean Absolute Error': float(mae),
+        'Mean Squared Error': float(mse)
     }
     
     print(f"Evaluation Results: {evaluation_results}")

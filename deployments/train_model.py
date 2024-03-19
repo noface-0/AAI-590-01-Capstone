@@ -114,7 +114,7 @@ def train_model(
         api_key=API_KEY,
         api_secret=API_SECRET,
         api_url=API_BASE_URL,
-        forecast_steps=TIME_INTERVAL
+        forecast_steps=time_interval
     )
     account_value_erl = drl_test(
         data=validation_data,
