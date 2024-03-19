@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import pandas as pd
 import torch.nn as nn
-from joblib import dump
+from joblib import dump, load
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -49,12 +49,14 @@ def download_data(
 
 def prepare_data(
     forecast_steps: int,
-    data=pd.DataFrame()
+    data=pd.DataFrame(),
+    save_scaler=False
 ):
     # shifting for future forecast
     data['target_high'] = data.groupby('tic')['high'] \
         .shift(-forecast_steps)
     data = data.dropna(subset=['target_high'])
+    data = data.reindex(sorted(data.columns), axis=1)
 
     features = data.drop(
         ['timestamp', 'tic', 'target_high'], axis=1
@@ -66,11 +68,18 @@ def prepare_data(
     )
 
     # scaling on training after split to prevent leakage
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_val_scaled = scaler.transform(X_val)
+    if save_scaler:
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
+        dump(scaler, 'models/runs/fnn/scaler.joblib')
+    else:
+        # Load existing scaler and apply it without fitting
+        scaler = load('models/runs/fnn/scaler.joblib')
 
-    dump(scaler, 'models/runs/fnn/scaler.joblib')
+        X_train_scaled = scaler.transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
+
 
     X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
     y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
@@ -174,7 +183,11 @@ def train(
     hidden_sizes = best_params['hidden_sizes']
     
     X_train, _, _, train_loader, val_loader \
-        = prepare_data(data=data, forecast_steps=forecast_steps)
+        = prepare_data(
+            data=data, 
+            forecast_steps=forecast_steps,
+            save_scaler=True
+        )
     
     model = FNN(
         input_size=X_train.shape[1],
