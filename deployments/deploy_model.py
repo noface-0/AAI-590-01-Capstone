@@ -2,7 +2,7 @@ import threading
 from fastapi import FastAPI
 
 from config.indicators import INDICATORS
-from config.tickers import DOW_30_TICKER
+from config.tickers import DOW_30_TICKER, SP_500_TICKER
 from config.models import ERL_PARAMS, SAC_PARAMS
 from config.training import TIME_INTERVAL, AGENT
 from environments.alpaca import AlpacaPaperTrading
@@ -25,16 +25,24 @@ def start_trading():
         "sac": SAC_PARAMS
     }
     bucket_name = 'rl-trading-v1-runs'
-    model_s3_path = 'runs/models/actor.pth'
+    dlr_model_s3_path = 'runs/models/actor.pth'
+    fnn_model_s3_path = 'runs/models/fnn.pth'
 
-    # retrieve most recent model
+    # retrieve most recent models
     try:
         save_model_from_s3(
             bucket_name=bucket_name,
-            s3_path=model_s3_path,
-            local_file_path='models/runs/papertrading_erl_retrain'
+            s3_path=dlr_model_s3_path,
+            local_file_path='models/runs/drl/papertrading_erl_retrain'
         )
-        print("loaded model from S3")
+        print("loaded DLR model from S3")
+
+        save_model_from_s3(
+            bucket_name=bucket_name,
+            s3_path=fnn_model_s3_path,
+            local_file_path='models/runs/fnn'
+        )
+        print("loaded FNN model from S3")
     except Exception:
         pass
 
@@ -45,7 +53,7 @@ def start_trading():
         time_interval=TIME_INTERVAL,
         drl_lib='elegantrl',
         agent=AGENT,
-        cwd='models/runs/papertrading_erl_retrain',
+        cwd='models/runs/drl/papertrading_erl_retrain',
         net_dim=params['net_dimension'],
         state_dim=state_dim,
         action_dim=action_dim,

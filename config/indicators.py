@@ -29,5 +29,6 @@ INDICATORS = [
     'WilliamsR', 
     'Stochastic_SlowK', 
     'Stochastic_SlowD', 
-    'MFI'
+    'MFI',
+    'fnn_pred'
 ]

@@ -8,7 +8,8 @@ import logging
 import torch
 
 from environments.base import StockTradingEnv
-from training.dlr import train, test
+from training.dlr import train as drl_train, test as drl_test
+from training.fnn import train as fnn_train, test as fnn_test
 from config.indicators import INDICATORS
 from config.tickers import DOW_30_TICKER
 from config.models import ERL_PARAMS, SAC_PARAMS
@@ -18,8 +19,11 @@ from config.training import (
     TRAIN_END_DATE,
     TEST_START_DATE,
     TEST_END_DATE,
-    AGENT
+    AGENT,
+    FNN_EPOCHS,
+    FNN_TRIALS
 )
+from utils.utils import get_var
 from deployments.s3_utils import (
     load_data_from_s3,
     load_model_from_local_path,
@@ -29,12 +33,22 @@ from deployments.s3_utils import (
 )
 
 
+API_KEY = get_var("ALPACA_API_KEY")
+API_SECRET = get_var("ALPACA_API_SECRET")
+API_BASE_URL = get_var("ALPACA_API_BASE_URL")
+
+BASE_DIR = os.path.dirname(
+    os.path.dirname(os.path.realpath(__file__))
+)
+time_interval = int(TIME_INTERVAL.strip("Min"))
+
+
 def train_model(
         train_data=pd.DataFrame(), 
         validation_data=pd.DataFrame(),
-        api_key=None,
-        api_secret=None,
-        api_url=None,
+        api_key=API_KEY,
+        api_secret=API_SECRET,
+        api_url=API_BASE_URL,
 ):
     # Initialize environment
     env = StockTradingEnv
@@ -51,9 +65,23 @@ def train_model(
     else:
         split = False
 
-    # Training phase
     print("Starting training phase...")
-    train(
+    # fnn will split data if auto-downloading
+    fnn_train(
+        data=train_data,
+        start_date=TRAIN_START_DATE,
+        end_date=TEST_END_DATE,
+        ticker_list=DOW_30_TICKER,
+        time_interval=TIME_INTERVAL,
+        if_vix=True,
+        api_key=API_KEY,
+        api_secret=API_SECRET,
+        api_url=API_BASE_URL,
+        forecast_steps=time_interval,
+        n_trials=FNN_TRIALS,
+        num_epochs=FNN_EPOCHS
+    )
+    drl_train(
         data=train_data,
         start_date=TRAIN_START_DATE,
         end_date=TRAIN_END_DATE,
@@ -65,7 +93,7 @@ def train_model(
         model_name=AGENT,
         if_vix=True,
         erl_params=params,
-        cwd=f'{BASE_DIR}/models/runs/papertrading_erl',
+        cwd=f'{BASE_DIR}/models/runs/drl/papertrading_erl',
         break_step=1e6,
         split=split,
         api_key=api_key,
@@ -75,7 +103,20 @@ def train_model(
     
     # Testing phase
     print("Starting validation phase...")
-    account_value_erl = test(
+    # fnn will split data if auto-downloading
+    fnn_test(
+        data=validation_data,
+        start_date=TRAIN_START_DATE,
+        end_date=TEST_END_DATE,
+        ticker_list=DOW_30_TICKER,
+        time_interval=TIME_INTERVAL,
+        if_vix=True,
+        api_key=API_KEY,
+        api_secret=API_SECRET,
+        api_url=API_BASE_URL,
+        forecast_steps=TIME_INTERVAL
+    )
+    account_value_erl = drl_test(
         data=validation_data,
         start_date=TEST_START_DATE,
         end_date=TEST_END_DATE,
@@ -86,7 +127,7 @@ def train_model(
         env=env,
         model_name=AGENT,
         if_vix=True,
-        cwd=f'{BASE_DIR}/models/runs/papertrading_erl',
+        cwd=f'{BASE_DIR}/models/runs/drl/papertrading_erl',
         net_dimension=params['net_dimension'],
         split=split,
         api_key=api_key,
@@ -94,16 +135,17 @@ def train_model(
         api_url=api_url
     )
     print(
-        "Validation phase completed. Final account value:", 
+        "DRL Validation phase completed. Final account value:", 
         account_value_erl
     )
+
 
     full_data_df = pd.concat(
         [train_data, validation_data], ignore_index=True
     ) if not train_data.empty else pd.DataFrame()
 
     print("Starting full data training phase...")
-    train(
+    drl_train(
         data=full_data_df,
         start_date=TRAIN_START_DATE,
         end_date=TEST_END_DATE,
@@ -115,7 +157,7 @@ def train_model(
         model_name=AGENT,
         if_vix=True,
         erl_params=params,
-        cwd=f'{BASE_DIR}/models/runs/papertrading_erl_retrain',
+        cwd=f'{BASE_DIR}/models/runs/drl/papertrading_erl_retrain',
         break_step=1e6,
         split=False,
         api_key=api_key,
@@ -141,11 +183,6 @@ def copy_file(local_source_path: str, destination_path: str):
 
 
 if __name__ == "__main__":
-    import os
-    BASE_DIR = os.path.dirname(
-        os.path.dirname(os.path.realpath(__file__))
-    )
-
     parser = argparse.ArgumentParser(
         description="Process input data for training."
     )
@@ -183,7 +220,7 @@ if __name__ == "__main__":
     )
 
     bucket_name = 'rl-trading-v1-runs'
-    local_path = f'{BASE_DIR}/models/runs/papertrading_erl_retrain/actor.pth'
+    local_path = f'{BASE_DIR}/models/runs/drl/papertrading_erl_retrain/actor.pth'
     local_filename = os.path.basename(local_path)
     local_eval_path = f'{BASE_DIR}/models/runs/eval/evaluation.json'
     destination_path = os.path.join("/opt/ml/model", local_filename)

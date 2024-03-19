@@ -48,7 +48,7 @@ def train(
     else:
         data = dp.add_turbulence(data)
 
-    data = dp.preprocess_data(data)
+    data = dp.preprocess_data(data, save_scaler=True)
 
     price_array, tech_array, turbulence_array = dp.df_to_array(
         data, 
