@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # eval has already taken place in the training
     bucket_name = 'rl-trading-v1-runs'
-    eval_s3_path = f"s3://{bucket_name}/runs/evaluation/evaluation.json"
+    eval_s3_path = f"s3://{bucket_name}/runs/drl/evaluation.json"
 
     evaluation_data = load_data_from_s3(eval_s3_path)
     evaluation_data_json = json.loads(evaluation_data.decode('utf-8'))

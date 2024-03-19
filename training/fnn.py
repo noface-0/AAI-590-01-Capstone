@@ -8,6 +8,7 @@ from joblib import dump, load
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from processing.transform import AlpacaProcessor
 from models.fnn import FNN
@@ -261,12 +262,28 @@ def test(
     model.eval()
     
     criterion = nn.HuberLoss()
+
     val_loss = 0
+    all_targets = []
+    all_outputs = []
     with torch.no_grad():
         for inputs, targets in val_loader:
             outputs = model(inputs)
             val_loss += criterion(outputs.squeeze(), targets).item()
+            all_targets.extend(targets.numpy())
+            all_outputs.extend(outputs.squeeze().numpy())
 
     val_loss /= len(val_loader)
+    mae = mean_absolute_error(all_targets, all_outputs)
+    mse = mean_squared_error(all_targets, all_outputs)
     
-    print(f"FNN Validation Loss: {val_loss:.4f}")
+    evaluation_results = {
+        'Validation Loss': val_loss,
+        'Mean Absolute Error': mae,
+        'Mean Squared Error': mse
+    }
+    
+    print(f"Evaluation Results: {evaluation_results}")
+    
+    with open('models/runs/fnn/evaluation.json', 'w') as f:
+        json.dump(evaluation_results, f, indent=4)

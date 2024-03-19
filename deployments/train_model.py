@@ -222,10 +222,10 @@ if __name__ == "__main__":
     bucket_name = 'rl-trading-v1-runs'
     local_path = f'{BASE_DIR}/models/runs/drl/papertrading_erl_retrain/actor.pth'
     local_filename = os.path.basename(local_path)
-    local_eval_path = f'{BASE_DIR}/models/runs/eval/evaluation.json'
+    local_eval_path = f'{BASE_DIR}/models/runs/drl/evaluation.json'
     destination_path = os.path.join("/opt/ml/model", local_filename)
 
-    eval_s3_path = "runs/evaluation/evaluation.json"
+    eval_s3_path = "runs/evaluation/drl/evaluation.json"
     model_s3_path = 'runs/models/actor.pth'
 
     model = load_model_from_local_path(local_path)
