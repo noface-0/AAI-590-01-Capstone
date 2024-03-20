@@ -10,6 +10,11 @@ test.ipynb
 devcontainer.env
 .conda
 
+# models
+fnn.pth
+scaler.joblib
+actor.pth
+
 # Distribution / packaging
 .Python
 build/

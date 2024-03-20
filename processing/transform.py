@@ -25,7 +25,8 @@ class AlpacaProcessor:
             API_KEY=API_KEY, 
             API_SECRET=API_SECRET, 
             API_BASE_URL=API_BASE_URL, 
-            api=None
+            api=None,
+            save_scaler=False
     ):
         if api is None:
             try:
@@ -36,6 +37,8 @@ class AlpacaProcessor:
                 raise ValueError("Wrong Account Info!")
         else:
             self.api = api
+        
+        self.save_scaler = save_scaler
 
     def _fetch_data_for_ticker(
             self, 
@@ -256,23 +259,21 @@ class AlpacaProcessor:
         return indicator_df
     
     def preprocess_data(
-            self, 
+            self,
             df: pd.DataFrame, 
-            save_scaler: bool=False
-    ) -> pd.DataFrame:
-        numerical_cols = df.select_dtypes(
-            include=['float64', 'int64']).columns
+        ) -> pd.DataFrame:
+        numerical_cols = sorted(df.select_dtypes(
+            include=['float64', 'int64']
+        ).columns)
         
-        if save_scaler:
+        if self.save_scaler:
             scaler = StandardScaler()
-
             df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
-
             dump(scaler, 'models/runs/drl/scaler.joblib')
         else:
             scaler = load('models/runs/drl/scaler.joblib')
-            df[numerical_cols] = scaler.transform(df[numerical_cols])
 
+            df[numerical_cols] = scaler.transform(df[numerical_cols])
         
         return df
 
@@ -488,8 +489,11 @@ class AlpacaProcessor:
         new_df = new_df.reset_index()
         new_df = new_df.rename(columns={"index": "timestamp"})
 
-        df = self.add_technical_indicators(new_df)
         df["VIXY"] = 0
+        turb_df = self.api.get_bars(["VIXY"], time_interval, limit=1).df
+        latest_turb = turb_df["close"].values
+
+        df = self.add_technical_indicators(new_df)
 
         df = self.preprocess_data(df)
 
@@ -498,6 +502,5 @@ class AlpacaProcessor:
         )
         latest_price = price_array[-1]
         latest_tech = tech_array[-1]
-        turb_df = self.api.get_bars(["VIXY"], time_interval, limit=1).df
-        latest_turb = turb_df["close"].values
+
         return latest_price, latest_tech, latest_turb

@@ -4,10 +4,11 @@ import torch
 import numpy as np
 import pandas as pd
 import torch.nn as nn
-from joblib import dump
+from joblib import dump, load
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from processing.transform import AlpacaProcessor
 from models.fnn import FNN
@@ -49,12 +50,14 @@ def download_data(
 
 def prepare_data(
     forecast_steps: int,
-    data=pd.DataFrame()
+    data=pd.DataFrame(),
+    save_scaler=False
 ):
     # shifting for future forecast
     data['target_high'] = data.groupby('tic')['high'] \
         .shift(-forecast_steps)
     data = data.dropna(subset=['target_high'])
+    data = data.reindex(sorted(data.columns), axis=1)
 
     features = data.drop(
         ['timestamp', 'tic', 'target_high'], axis=1
@@ -66,11 +69,18 @@ def prepare_data(
     )
 
     # scaling on training after split to prevent leakage
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_val_scaled = scaler.transform(X_val)
+    if save_scaler:
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
+        dump(scaler, 'models/runs/fnn/scaler.joblib')
+    else:
+        # Load existing scaler and apply it without fitting
+        scaler = load('models/runs/fnn/scaler.joblib')
 
-    dump(scaler, 'models/runs/fnn/scaler.joblib')
+        X_train_scaled = scaler.transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
+
 
     X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
     y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
@@ -156,6 +166,12 @@ def train(
             api_secret=api_secret,
             api_url=api_url
         )
+    X_train, _, _, train_loader, val_loader \
+        = prepare_data(
+            data=data, 
+            forecast_steps=forecast_steps,
+            save_scaler=True
+        )
 
     study = optuna.create_study(direction='minimize')
     study.optimize(
@@ -172,9 +188,6 @@ def train(
     best_params = study.best_trial.params
     lr = best_params['lr']
     hidden_sizes = best_params['hidden_sizes']
-    
-    X_train, _, _, train_loader, val_loader \
-        = prepare_data(data=data, forecast_steps=forecast_steps)
     
     model = FNN(
         input_size=X_train.shape[1],
@@ -248,12 +261,28 @@ def test(
     model.eval()
     
     criterion = nn.HuberLoss()
+
     val_loss = 0
+    all_targets = []
+    all_outputs = []
     with torch.no_grad():
         for inputs, targets in val_loader:
             outputs = model(inputs)
             val_loss += criterion(outputs.squeeze(), targets).item()
+            all_targets.extend(targets.numpy())
+            all_outputs.extend(outputs.squeeze().numpy())
 
     val_loss /= len(val_loader)
+    mae = mean_absolute_error(all_targets, all_outputs)
+    mse = mean_squared_error(all_targets, all_outputs)
     
-    print(f"FNN Validation Loss: {val_loss:.4f}")
+    evaluation_results = {
+        'Validation Loss': float(val_loss),
+        'Mean Absolute Error': float(mae),
+        'Mean Squared Error': float(mse)
+    }
+    
+    print(f"Evaluation Results: {evaluation_results}")
+    
+    with open('models/runs/fnn/evaluation.json', 'w') as f:
+        json.dump(evaluation_results, f, indent=4)

@@ -279,7 +279,7 @@ class AlpacaPaperTrading():
             
     
     def get_state(self):
-        alpaca = AlpacaProcessor(api=self.alpaca)
+        alpaca = AlpacaProcessor(api=self.alpaca, save_scaler=False)
         price, tech, turbulence = alpaca.fetch_latest_data(
             ticker_list = self.stockUniverse, 
             time_interval='1Min', 

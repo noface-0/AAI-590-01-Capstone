@@ -23,7 +23,7 @@ def train(
     api_url=None,
     **kwargs,
 ):
-    dp = AlpacaProcessor(api_key, api_secret, api_url)
+    dp = AlpacaProcessor(api_key, api_secret, api_url, save_scaler=True)
 
     if data.empty:
         # download data
@@ -41,14 +41,15 @@ def train(
             data = train_data
 
     data = dp.clean_data(data)
-    data = dp.add_technical_indicators(data)
 
     if if_vix:
         data = dp.add_vix(data)
     else:
         data = dp.add_turbulence(data)
 
-    data = dp.preprocess_data(data, save_scaler=True)
+    data = dp.add_technical_indicators(data)
+
+    data = dp.preprocess_data(data)
 
     price_array, tech_array, turbulence_array = dp.df_to_array(
         data, 
@@ -136,12 +137,13 @@ def test(
             data = test_data
 
     data = dp.clean_data(data)
-    data = dp.add_technical_indicators(data)
 
     if if_vix:
         data = dp.add_vix(data)
     else:
         data = dp.add_turbulence(data)
+
+    data = dp.add_technical_indicators(data)
 
     data = dp.preprocess_data(data)
         

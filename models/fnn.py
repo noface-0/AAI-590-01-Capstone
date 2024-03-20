@@ -95,7 +95,10 @@ def prepare_data(
     :return features_tensor: Features as a torch.Tensor 
         ready for inference.
     """
-    features = data.drop(['timestamp', 'tic'], axis=1).values
+    data = data.reindex(sorted(data.columns), axis=1)
+    features = data.drop(
+        ['timestamp', 'tic', 'target_high'], axis=1, errors='ignore'
+    ).values
     
     scaler = joblib.load(scaler_path)
     features_scaled = scaler.transform(features)
