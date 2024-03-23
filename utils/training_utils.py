@@ -9,28 +9,64 @@ from utils.env_utils import build_env
 
 # reference: https://github.com/AI4Finance-Foundation/FinRL
 
-def get_rewards_and_steps(
-    env, actor, if_render: bool = False
-) -> Tuple[float, int]:  # cumulative_rewards and episode_steps
-    device = next(actor.parameters()).device  # net.parameters() is a Python generator.
 
-    state = env.reset()[0]
-    episode_steps = 0
-    cumulative_returns = 0.0  # sum of rewards in an episode
-    for episode_steps in range(12345):
-        tensor_state = torch.as_tensor(
-            state, dtype=torch.float32, device=device
-        ).unsqueeze(0)
-        tensor_action = actor(tensor_state)
-        action = tensor_action.detach().cpu().numpy()[0]  # not need detach(), because using torch.no_grad() outside
-        state, reward, done, _, info = env.step(action)
-        cumulative_returns += reward
+def get_rewards_and_steps(env, actor, if_render=False):
+    if not hasattr(actor, 'get_logprob_entropy'):  # SAC agent
+        device = next(actor.parameters()).device  # net.parameters() is a Python generator.
+        state = env.reset()
+        cumulative_returns = 0
+        steps = 0
 
-        if if_render:
-            env.render()
-        if done:
-            break
-    return cumulative_returns, episode_steps + 1
+        while True:
+            if isinstance(state, tuple):
+                state = state[0]
+            if len(state.shape) == 1:
+                state = np.expand_dims(state, axis=0)
+
+            tensor_state = torch.as_tensor(
+                state, dtype=torch.float32, device=device
+            )
+            with torch.no_grad():
+                tensor_action = actor.get_action(tensor_state)
+
+            if tensor_action.ndim == 0:
+                action = tensor_action.item()
+            else:
+                action = tensor_action.detach().cpu().numpy()
+
+            state, reward, done, _, info = env.step(action)
+            cumulative_returns += reward
+
+            if if_render:
+                env.render()
+
+            steps += 1
+
+            if done:
+                break
+
+        return cumulative_returns, steps
+
+    else: # PPO agent
+        device = next(actor.parameters()).device
+
+        state = env.reset()[0]
+        episode_steps = 0
+        cumulative_returns = 0.0
+        for episode_steps in range(12345):
+            tensor_state = torch.as_tensor(
+                state, dtype=torch.float32, device=device
+            ).unsqueeze(0)
+            tensor_action = actor(tensor_state)
+            action = tensor_action.detach().cpu().numpy()[0]
+            state, reward, done, _, info = env.step(action)
+            cumulative_returns += reward
+
+            if if_render:
+                env.render()
+            if done:
+                break
+        return cumulative_returns, episode_steps + 1
 
 
 def train_agent(args: Config):

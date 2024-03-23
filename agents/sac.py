@@ -13,21 +13,18 @@ class ActorSAC(nn.Module):
         super().__init__()
         self.net = build_mlp(dims=[state_dim, *dims, action_dim * 2])  # Mean and log_std
 
-    def forward(self, state: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, state: Tensor) -> Tensor:
         x = self.net(state)
         mean, log_std = torch.chunk(x, 2, dim=-1)
         log_std = torch.clamp(log_std, min=-20, max=2)
-        return mean, log_std
-
-    def get_action(self, state: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
-        mean, log_std = self(state)
         std = log_std.exp()
         dist = Normal(mean, std)
         z = dist.rsample()
         action = torch.tanh(z)
-        log_prob = dist.log_prob(z) - torch.log(1 - action.pow(2) + 1e-6)
-        log_prob = log_prob.sum(-1, keepdim=True)
-        return action, log_prob, z
+        return action.squeeze(0)
+    
+    def get_action(self, state: Tensor) -> Tensor:
+        return self(state)
 
     @staticmethod
     def convert_action_for_env(action: Tensor) -> Tensor:
@@ -61,6 +58,12 @@ class AgentSAC(AgentBase):
 
         self.alpha = getattr(args, "alpha", 0.2)  # Entropy coefficient
         self.target_entropy = getattr(args, "target_entropy", -action_dim)
+        self.tau = getattr(args, "tau", 0.005)  # Soft update factor for target networks
+
+    def select_action(self, state: Tensor) -> Tensor:
+        with torch.no_grad():
+            action = self.act.get_action(state)
+        return action
 
     def explore_env(self, env, horizon_len: int) -> List[Tensor]:
         states = torch.zeros(
@@ -99,3 +102,60 @@ class AgentSAC(AgentBase):
         undones = (1 - dones.type(torch.float32)).unsqueeze(1)
 
         return states, actions, rewards, undones
+
+    def update_net(self, buffer_items: List[Tensor]) -> Tuple[float, ...]:
+        states, actions, rewards, undones = buffer_items
+        next_states = torch.cat(
+            (states[1:], torch.from_numpy(self.states[0]).unsqueeze(0)), dim=0
+        )
+
+        q1_loss, q2_loss = self.update_critic(
+            states, actions, rewards, undones, next_states
+        )
+
+        actor_loss = self.update_actor(states)
+
+        self.soft_update(self.cri_target, self.cri, self.tau)
+
+        return q1_loss.item(), q2_loss.item(), actor_loss.item()
+
+    def update_critic(self, states, actions, rewards, undones, next_states):
+        # Compute target Q-values
+        with torch.no_grad():
+            next_actions = self.act.get_action(next_states)
+            next_q1, next_q2 = self.cri_target(next_states, next_actions)
+            next_q = torch.min(next_q1, next_q2)
+            target_q = rewards + undones * self.gamma * next_q
+
+        # Compute current Q-values
+        current_q1, current_q2 = self.cri(states, actions)
+        # critic loss
+        q1_loss = nn.MSELoss()(current_q1, target_q)
+        q2_loss = nn.MSELoss()(current_q2, target_q)
+
+        self.cri_optimizer.zero_grad()
+        (q1_loss + q2_loss).backward()
+        self.cri_optimizer.step()
+
+        return q1_loss, q2_loss
+
+    def update_actor(self, states):
+        # actor loss
+        actions = self.act.get_action(states)
+        q1, q2 = self.cri(states, actions)
+        q = torch.min(q1, q2)
+        actor_loss = -q.mean()
+
+        self.act_optimizer.zero_grad()
+        actor_loss.backward()
+        self.act_optimizer.step()
+
+        return actor_loss
+
+    def soft_update(self, target_net, current_net, tau):
+        for target_param, current_param in zip(
+            target_net.parameters(), current_net.parameters()
+        ):
+            target_param.data.copy_(
+                tau * current_param.data + (1 - tau) * target_param.data
+            )
