@@ -23,7 +23,13 @@ def train(
     api_url=None,
     **kwargs,
 ):
-    dp = AlpacaProcessor(api_key, api_secret, api_url, save_scaler=True)
+    dp = AlpacaProcessor(
+        api_key, 
+        api_secret, 
+        api_url, 
+        save_scaler=True,
+        time_interval=time_interval
+    )
 
     if data.empty:
         # download data
@@ -67,40 +73,19 @@ def train(
     # read parameters
     cwd = kwargs.get("cwd", "./" + str(model_name))
 
-    if drl_lib == "elegantrl":
-        DRLAgent_erl = DRLAgent
-        break_step = kwargs.get("break_step", 1e6)
-        erl_params = kwargs.get("erl_params")
-        agent = DRLAgent_erl(
-            env=env,
-            price_array=price_array,
-            tech_array=tech_array,
-            turbulence_array=turbulence_array,
-        )
-        model = agent.get_model(model_name, model_kwargs=erl_params)
-        trained_model = agent.train_model(
-            model=model, cwd=cwd, total_timesteps=break_step
-        )
-
-    elif drl_lib == "stable_baselines3":
-        total_timesteps = kwargs.get("total_timesteps", 1e6)
-        agent_params = kwargs.get("agent_params")
-
-        agent = DRLAgent(env=env_instance)
-        model = agent.get_model(model_name, model_kwargs=agent_params)
-        trained_model = agent.train_model(
-            model=model, 
-            tb_log_name=model_name, 
-            total_timesteps=total_timesteps
-        )
-        print("Training is finished!")
-        trained_model.save(cwd)
-        print("Trained model is saved in " + str(cwd))
-
-    else:
-        raise ValueError(
-            "DRL library input is NOT supported. Please check."
-        )
+    DRLAgent_erl = DRLAgent
+    break_step = kwargs.get("break_step", 1e6)
+    erl_params = kwargs.get("erl_params")
+    agent = DRLAgent_erl(
+        env=env,
+        price_array=price_array,
+        tech_array=tech_array,
+        turbulence_array=turbulence_array,
+    )
+    model = agent.get_model(model_name, model_kwargs=erl_params)
+    trained_model = agent.train_model(
+        model=model, cwd=cwd, total_timesteps=break_step
+    )
 
 
 def test(
@@ -120,7 +105,12 @@ def test(
     api_url=None,
     **kwargs,
 ):
-    dp = AlpacaProcessor(api_key, api_secret, api_url)
+    dp = AlpacaProcessor(
+        api_key, 
+        api_secret, 
+        api_url,
+        time_interval=time_interval
+    )
     # download data
     if data.empty:
         data = dp.download_data(
@@ -166,12 +156,11 @@ def test(
     cwd = kwargs.get("cwd", "./" + str(model_name))
     print("price_array: ", len(price_array))
 
-    if drl_lib == "elegantrl":
-        DRLAgent_erl = DRLAgent
-        episode_total_assets = DRLAgent_erl.DRL_prediction(
-            model_name=model_name,
-            cwd=cwd,
-            net_dimension=net_dimension,
-            environment=env_instance,
-        )
-        return episode_total_assets
+    DRLAgent_erl = DRLAgent
+    episode_total_assets, episode_return, drawdown = DRLAgent_erl.DRL_prediction(
+        model_name=model_name,
+        cwd=cwd,
+        net_dimension=net_dimension,
+        environment=env_instance,
+    )
+    return episode_total_assets, episode_return, drawdown

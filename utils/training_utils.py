@@ -149,19 +149,22 @@ class Evaluator:
         self.eval_per_step = eval_per_step  # evaluate the agent per training steps
 
         self.recorder = []
+        self.returns_history = []
+        self.drawdown_history = []
         print(
-            "\n| `step`: Number of samples, total training steps, or "
-            "running times of `env.step()`."
-            "\n| `time`: Time from the start of training to now."
-            "\n| `avgR`: Avg. cumulative rewards, sum of rewards per episode."
-            "\n| `stdR`: Std dev of cumulative rewards per episode."
+            "\n| `step`: Number of samples, total training steps,"
+            " or `env.step()` runs."
+            "\n| `time`: Time from start of training to now."
+            "\n| `avgR`: Avg. cumulative rewards per episode."
+            "\n| `stdR`: Std dev of cumulative rewards."
             "\n| `avgS`: Avg. steps per episode."
-            "\n| `objC`: Critic network objective or loss function."
-            "\n| `objA`: Actor network objective, avg Q value of critic."
-            f"\n| {'step':>8} | {'time':>8} | "
-            f"{'avgR':>8} | {'stdR':>6} | "
-            f"{'avgS':>6} | {'objC':>8} | "
-            f"{'objA':>8}"
+            "\n| `objC`: Critic network loss function."
+            "\n| `objA`: Actor network avg Q value."
+            "\n| `returns`: Avg. returns per episode."
+            "\n| `drawdown`: Max drawdown per episode."
+            f"\n| {'step':>8} | {'time':>8} | {'avgR':>8} |"
+            f" {'stdR':>8} | {'avgS':>8} | {'objC':>8} |"
+            f" {'objA':>8} | {'returns':>8} | {'drawdown':>8}"
         )
             
     def evaluate_and_save(
@@ -184,11 +187,24 @@ class Evaluator:
         std_r = rewards_steps_ary[:, 0].std()  # std of cumulative rewards
         avg_s = rewards_steps_ary[:, 1].mean()  # average of steps in an episode
 
+        episode_returns = rewards_steps_ary[:, 0]
+        returns = episode_returns / self.env_eval.initial_total_asset
+
+        cumulative_returns = np.cumsum(episode_returns)
+        running_max = np.maximum.accumulate(cumulative_returns)
+        drawdown = np.zeros_like(cumulative_returns)
+        drawdown[1:] = ((running_max[:-1] - cumulative_returns[1:]) / 
+                        np.maximum(running_max[:-1], 1e-8))
+        drawdown = np.maximum.accumulate(drawdown)
+
+        # Record returns and drawdown history
+        self.returns_history.append(returns.mean())
+        self.drawdown_history.append(drawdown[-1])
+
         used_time = time.time() - self.start_time
         self.recorder.append((self.total_step, used_time, avg_r))
-        
-        print(
-            f"| `step`:{self.total_step:8.2e} | `time`:{used_time:8.0f} | "
-            f"`avgR`:{avg_r:8.2f} | `stdR`:{std_r:6.2f} | `avgS`:{avg_s:6.0f} | "
-            f"`objC`:{logging_tuple[0]:8.2f} | `objA`:{logging_tuple[1]:8.2f} |"
-        )
+
+        print(f"| {self.total_step:8.2e} | {used_time:8.0f} | "
+              f"{avg_r:8.4f} | {std_r:8.4f} | {avg_s:8.0f} | "
+              f"{logging_tuple[0]:8.4f} | {logging_tuple[1]:8.4f} | "
+              f"{returns.mean():8.6f} | {drawdown[-1]:8.6f} |")

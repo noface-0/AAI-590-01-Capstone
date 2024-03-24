@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from config.indicators import INDICATORS
 from config.tickers import DOW_30_TICKER, SP_500_TICKER
 from config.models import ERL_PARAMS, SAC_PARAMS
-from config.training import TIME_INTERVAL, AGENT
+from config.training import TIME_INTERVAL, AGENT, OBJECTIVE
 from environments.alpaca import AlpacaPaperTrading
 from utils.utils import get_var
 from deployments.s3_utils import save_model_from_s3
@@ -33,7 +33,7 @@ def start_trading():
         save_model_from_s3(
             bucket_name=bucket_name,
             s3_path=dlr_model_s3_path,
-            local_file_path='models/runs/drl/papertrading_erl_retrain'
+            local_file_path=f'models/runs/drl/{OBJECTIVE}papertrading_erl_retrain'
         )
         print("loaded DLR model from S3")
 
@@ -53,7 +53,7 @@ def start_trading():
         time_interval=TIME_INTERVAL,
         drl_lib='elegantrl',
         agent=AGENT,
-        cwd='models/runs/drl/papertrading_erl_retrain',
+        cwd=f'models/runs/drl/{OBJECTIVE}/papertrading_erl_retrain',
         net_dim=params['net_dimension'],
         state_dim=state_dim,
         action_dim=action_dim,

@@ -2,6 +2,7 @@ from __future__ import annotations
 import os
 import json
 import torch
+import numpy as np
 # from elegantrl.agents import AgentA2C
 from agents.ppo import AgentPPO
 from agents.sac import AgentSAC
@@ -100,14 +101,16 @@ class DRLAgent:
     def DRL_prediction(model_name, cwd, net_dimension, environment):
         if model_name not in MODELS:
             raise NotImplementedError("NotImplementedError")
+        
         agent_class = MODELS[model_name]
         environment.env_num = 1
         agent = agent_class(
             net_dimension, environment.state_dim, environment.action_dim
         )
         actor = agent.act
+
         # load agent
-        try:  
+        try:
             cwd = cwd + '/actor.pth'
             print(f"| load actor from: {cwd}")
             actor.load_state_dict(
@@ -123,6 +126,7 @@ class DRLAgent:
         state = environment.reset()[0]
         episode_returns = []  # the cumulative_return / initial_account
         episode_total_assets = [environment.initial_total_asset]
+
         with _torch.no_grad():
             for i in range(environment.max_step):
                 s_tensor = _torch.as_tensor((state,), device=device)
@@ -135,17 +139,22 @@ class DRLAgent:
                 total_asset = (
                     environment.amount
                     + (
-                        environment.price_ary[environment.day] 
+                        environment.price_ary[environment.day]
                         * environment.stocks
                     ).sum()
                 )
                 episode_total_assets.append(total_asset)
                 episode_return = total_asset / environment.initial_total_asset
                 episode_returns.append(episode_return)
+
                 if done:
                     break
-        print("Test Finished")
-        print("episode_return", episode_return)
+
+        # Calculate drawdown
+        episode_total_assets = np.array(episode_total_assets)
+        cumulative_returns = episode_total_assets / episode_total_assets[0]
+        running_max = np.maximum.accumulate(cumulative_returns)
+        drawdown = ((running_max - cumulative_returns) / running_max).max()
 
         eval_file_path = os.path.join(
             BASE_DIR, 'models', 'runs', 'eval', 'evaluation.json'
@@ -154,8 +163,15 @@ class DRLAgent:
 
         eval_dict = {
             "final_episode_return": episode_return,
+            "max_drawdown": drawdown
         }
+
+        print("Test Finished")
+        print("episode_total_assets", episode_total_assets)
+        print("episode_return", episode_return)
+        print("max_drawdown", drawdown)
+
         with open(eval_file_path, 'w') as f:
             json.dump(eval_dict, f)
 
-        return episode_total_assets
+        return episode_total_assets, episode_return, drawdown

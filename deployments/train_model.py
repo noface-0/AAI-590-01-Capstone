@@ -7,12 +7,14 @@ import boto3
 import logging
 import torch
 
+from processing.extract import download_data
 from environments.base import StockTradingEnv
 from training.dlr import train as drl_train, test as drl_test
 from training.fnn import train as fnn_train, test as fnn_test
+from training.ga import evolve_portfolio
 from config.indicators import INDICATORS
-from config.tickers import DOW_30_TICKER
-from config.models import ERL_PARAMS, SAC_PARAMS
+from config.tickers import DOW_30_TICKER, SP_500_TICKER
+from config.models import ERL_PARAMS, SAC_PARAMS, GA_PARAMS
 from config.training import (
     TIME_INTERVAL,
     TRAIN_START_DATE,
@@ -21,7 +23,8 @@ from config.training import (
     TEST_END_DATE,
     AGENT,
     FNN_EPOCHS,
-    FNN_TRIALS
+    FNN_TRIALS,
+    OBJECTIVE
 )
 from utils.utils import get_var
 from deployments.s3_utils import (
@@ -42,6 +45,8 @@ BASE_DIR = os.path.dirname(
 )
 time_interval = int(TIME_INTERVAL.strip("Min"))
 
+exploration_tickers = DOW_30_TICKER + SP_500_TICKER
+
 
 def train_model(
         train_data=pd.DataFrame(), 
@@ -61,6 +66,16 @@ def train_model(
 
     if train_data.empty or validation_data.empty:
         logging.info("No training data provided. Auto-downloading.")
+        train_data = download_data(
+            ticker_list=exploration_tickers,
+            start_date=TRAIN_START_DATE,
+            end_date=TEST_END_DATE,
+            time_interval=TIME_INTERVAL,
+            api_key=API_KEY,
+            api_secret=API_SECRET,
+            api_base_url=API_BASE_URL
+        )
+        validation_data = train_data
         split = True
     else:
         split = False
@@ -71,7 +86,7 @@ def train_model(
         data=train_data,
         start_date=TRAIN_START_DATE,
         end_date=TEST_END_DATE,
-        ticker_list=DOW_30_TICKER,
+        ticker_list=exploration_tickers,
         time_interval=TIME_INTERVAL,
         if_vix=True,
         api_key=API_KEY,
@@ -81,11 +96,23 @@ def train_model(
         n_trials=FNN_TRIALS,
         num_epochs=FNN_EPOCHS
     )
+
+    optimized_portfolio = evolve_portfolio(
+        objective=OBJECTIVE,
+        num_generations=GA_PARAMS['num_generations'],
+        mutation_rate=GA_PARAMS['mutation_rate'],
+        start_date=TRAIN_START_DATE,
+        end_date=TEST_END_DATE,
+        ticker_list=exploration_tickers,
+        time_interval=TIME_INTERVAL,
+        data=train_data
+    )
+
     drl_train(
         data=train_data,
         start_date=TRAIN_START_DATE,
         end_date=TRAIN_END_DATE,
-        ticker_list=DOW_30_TICKER,
+        ticker_list=optimized_portfolio,
         time_interval=TIME_INTERVAL, 
         technical_indicator_list=INDICATORS,
         drl_lib='elegantrl',
@@ -93,7 +120,7 @@ def train_model(
         model_name=AGENT,
         if_vix=True,
         erl_params=params,
-        cwd=f'{BASE_DIR}/models/runs/drl/papertrading_erl',
+        cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/papertrading_erl',
         break_step=1e6,
         split=split,
         api_key=api_key,
@@ -105,10 +132,10 @@ def train_model(
     print("Starting validation phase...")
     # fnn will split data if auto-downloading
     fnn_test(
-        data=validation_data,
+        data=train_data,
         start_date=TRAIN_START_DATE,
         end_date=TEST_END_DATE,
-        ticker_list=DOW_30_TICKER,
+        ticker_list=exploration_tickers,
         time_interval=TIME_INTERVAL,
         if_vix=True,
         api_key=API_KEY,
@@ -120,14 +147,14 @@ def train_model(
         data=validation_data,
         start_date=TEST_START_DATE,
         end_date=TEST_END_DATE,
-        ticker_list=DOW_30_TICKER,
+        ticker_list=optimized_portfolio,
         time_interval=TIME_INTERVAL,
         technical_indicator_list=INDICATORS,
         drl_lib='elegantrl',
         env=env,
         model_name=AGENT,
         if_vix=True,
-        cwd=f'{BASE_DIR}/models/runs/drl/papertrading_erl',
+        cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/papertrading_erl',
         net_dimension=params['net_dimension'],
         split=split,
         api_key=api_key,
@@ -136,9 +163,8 @@ def train_model(
     )
     print(
         "DRL Validation phase completed. Final account value:", 
-        account_value_erl
+        account_value_erl[0]
     )
-
 
     full_data_df = pd.concat(
         [train_data, validation_data], ignore_index=True
@@ -149,7 +175,7 @@ def train_model(
         data=full_data_df,
         start_date=TRAIN_START_DATE,
         end_date=TEST_END_DATE,
-        ticker_list=DOW_30_TICKER,
+        ticker_list=optimized_portfolio,
         time_interval=TIME_INTERVAL, 
         technical_indicator_list=INDICATORS,
         drl_lib='elegantrl',
@@ -157,7 +183,7 @@ def train_model(
         model_name=AGENT,
         if_vix=True,
         erl_params=params,
-        cwd=f'{BASE_DIR}/models/runs/drl/papertrading_erl_retrain',
+        cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/papertrading_erl_retrain',
         break_step=1e6,
         split=False,
         api_key=api_key,
@@ -220,12 +246,12 @@ if __name__ == "__main__":
     )
 
     bucket_name = 'rl-trading-v1-runs'
-    local_path = f'{BASE_DIR}/models/runs/drl/papertrading_erl_retrain/actor.pth'
+    local_path = f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/papertrading_erl_retrain/actor.pth'
     local_filename = os.path.basename(local_path)
-    local_eval_path = f'{BASE_DIR}/models/runs/drl/evaluation.json'
+    local_eval_path = f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/evaluation.json'
     destination_path = os.path.join("/opt/ml/model", local_filename)
 
-    eval_s3_path = "runs/evaluation/drl/evaluation.json"
+    eval_s3_path = f"runs/evaluation/drl/{OBJECTIVE}/evaluation.json"
     model_s3_path = 'runs/models/actor.pth'
 
     model = load_model_from_local_path(local_path)

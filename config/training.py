@@ -9,3 +9,6 @@ FNN_EPOCHS=10
 FNN_TRIALS=10
 
 AGENT="ppo"
+
+# portfolio optimization objective
+OBJECTIVE='max_returns'

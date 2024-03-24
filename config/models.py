@@ -45,3 +45,8 @@ SAC_PARAMS = {
     "ent_coef": "auto_0.1",
     "net_dimension": [256, 256]
 }
+
+GA_PARAMS = {
+    "mutation_rate": 0.1,
+    "num_generations": 100,
+}

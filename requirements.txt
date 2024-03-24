@@ -15,6 +15,7 @@ python-dotenv
 torch
 optuna
 joblib
+tqdm
 
 # pygame latest version
 pygame>=2.1.3

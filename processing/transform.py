@@ -26,7 +26,8 @@ class AlpacaProcessor:
             API_SECRET=API_SECRET, 
             API_BASE_URL=API_BASE_URL, 
             api=None,
-            save_scaler=False
+            save_scaler=False,
+            time_interval='1Min'
     ):
         if api is None:
             try:
@@ -39,6 +40,7 @@ class AlpacaProcessor:
             self.api = api
         
         self.save_scaler = save_scaler
+        self.time_interval = time_interval
 
     def _fetch_data_for_ticker(
             self, 

@@ -11,41 +11,13 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from processing.transform import AlpacaProcessor
+from processing.extract import download_data
 from models.fnn import FNN
 from models.losses import (
     LogCoshLoss,
     XSigmoidLoss,
     XTanhLoss
 )
-
-
-def download_data(
-    start_date,
-    end_date,
-    ticker_list,
-    time_interval,
-    if_vix=True,
-    api_key=None,
-    api_secret=None,
-    api_url=None
-) -> pd.DataFrame:
-    dp = AlpacaProcessor(api_key, api_secret, api_url)
-
-    data = dp.download_data(
-        ticker_list, 
-        start_date, 
-        end_date, 
-        time_interval
-    )
-    data = dp.clean_data(data)
-    data = dp.add_technical_indicators(data, add_fnn=False)
-
-    if if_vix:
-        data = dp.add_vix(data)
-    else:
-        data = dp.add_turbulence(data)
-    
-    return data
 
 
 def prepare_data(
@@ -155,17 +127,27 @@ def train(
     n_trials=10, 
     num_epochs=10,
 ):
+    dp = AlpacaProcessor(api_key, api_secret, api_url)
+
     if data.empty:
         data = download_data(
             start_date=start_date,
             end_date=end_date,
             ticker_list=ticker_list,
             time_interval=time_interval,
-            if_vix=if_vix,
             api_key=api_key,
             api_secret=api_secret,
             api_url=api_url
         )
+
+    data = dp.clean_data(data)
+    data = dp.add_technical_indicators(data, add_fnn=False)
+
+    if if_vix:
+        data = dp.add_vix(data)
+    else:
+        data = dp.add_turbulence(data)
+
     X_train, _, _, train_loader, val_loader \
         = prepare_data(
             data=data, 
