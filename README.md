@@ -83,7 +83,7 @@ Index (D=Discussion, B=Brainstorm, A=Adam, J=Javon, N=Nathan)
 - Setup meeting with Professor Marbut @ Tue 3/19/2024 3:00 PM (PST)
 - Setup next Team meeting 3/21/24 @ 3:00 PST
 
-## Team meeting #4 3/21/2024
+## Team meeting #4 Date 3/21/2024
 - Update progress
 - Documentation discussion and presentations
 - ETL services
@@ -92,5 +92,6 @@ Index (D=Discussion, B=Brainstorm, A=Adam, J=Javon, N=Nathan)
 - FNN discussion on portfolio integration
 - Portfolio risk related logistics
 - project management updates
+- Setup next Team meeting 3/28/24 @ 3:00 PST
   
 
