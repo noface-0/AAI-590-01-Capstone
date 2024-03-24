@@ -39,8 +39,9 @@ Data imput per client
 
 ## Models
 Soft Actor-Critic (SAC1)
-Convolutional Neural Network (CNN)
-Deep Neural Network (DNN)
+Proximal Policy Optimization (PPO)
+Feedforward Neural Network (FNN)
+Genetic Algorithm (GA)
 
 ## Project Management Flow and Tool
 - Using Jira
@@ -88,7 +89,7 @@ Index (D=Discussion, B=Brainstorm, A=Adam, J=Javon, N=Nathan)
 - Documentation discussion and presentations
 - ETL services
 - Feature Engineering
-- SAC, CNN, and DNN models
+- SAC, PPO, FNN, and GA models
 - FNN discussion on portfolio integration
 - Portfolio risk related logistics
 - project management updates
