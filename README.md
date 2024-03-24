@@ -2,14 +2,14 @@
 # Team 6
 ## Nathan Metheny, Javon Kitson, Adam Graves
 # AI Stock Trading System
-@misc{
-  author = {Nathan Metheny, Javon Kitson, Adam Graves},
-  title = {AI Smart Stock Trading System},
-  year = {2024},
-  project = {AAI590-Capstone},
-  journal = {GitHub repository},
-  howpublished = {\url(https://github.com/noface-0/AAI-590-01-Capstone/edit/main)},
-}
+    @misc{
+      author = {Nathan Metheny, Javon Kitson, Adam Graves},
+      title = {AI Smart Stock Trading System},
+      year = {2024},
+      project = {AAI590-Capstone},
+      journal = {GitHub repository},
+      howpublished = {\url(https://github.com/noface-0/AAI-590-01-Capstone/edit/main)},
+    }
 -------------------------------------------------------------------------------------------------------------
 ## Company and System Overview
 ### We offer a SaaS based subscription services that provides end users the ability to set up their trading portfolio and automate their stock trading utilizing our AI based system
