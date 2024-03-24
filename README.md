@@ -8,7 +8,7 @@
   year = {2024},
   project = {AAI590-Capstone},
   journal = {GitHub repository},
-  howpublished = {\url{[https://github.com/denisyarats/pytorch_sac](https://github.com/noface-0/AAI-590-01-Capstone/edit/main)}},
+  howpublished = {\url(https://github.com/noface-0/AAI-590-01-Capstone/edit/main)},
 }
 -------------------------------------------------------------------------------------------------------------
 ## Company and System Overview
