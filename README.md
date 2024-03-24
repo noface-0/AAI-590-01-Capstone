@@ -2,6 +2,14 @@
 # Team 6
 ## Nathan Metheny, Javon Kitson, Adam Graves
 # AI Stock Trading System
+@misc{
+  author = {Nathan Metheny, Javon Kitson, Adam Graves},
+  title = {AI Smart Stock Trading System},
+  year = {2024},
+  project = {AAI590-Capstone},
+  journal = {GitHub repository},
+  howpublished = {\url{[https://github.com/denisyarats/pytorch_sac](https://github.com/noface-0/AAI-590-01-Capstone/edit/main)}},
+}
 -------------------------------------------------------------------------------------------------------------
 ## Company and System Overview
 ### We offer a SaaS based subscription services that provides end users the ability to set up their trading portfolio and automate their stock trading utilizing our AI based system
@@ -11,13 +19,32 @@ The objective is to build a trading system that at its core are our AI models ba
 
 In addition to the technical implementation, we will explore the theoretical foundations of reinforcement learning and its suitability for financial markets. This enhances the traditional models that preditct the estimated stock trading price, and with additional metrics it will produce better predictions as to trade based on size, market time, market status, and more. This also includes discussing the challenges of applying DRL in a highly volatile environment, such as stock trading, and the strategies used to mitigate these risks. Our demonstration aims to provide a comprehensive overview of how deep reinforcement learning can be utilized to innovate in the field of stock trading, offering insights into both its capabilities and limitations.
 
+## Data Sources
+- Stock data
+The dataset used in this Deep Reinforcement Learning Stock Trading is a paid a licensed dataset from Firstrate Data. 
+Data Information:
+FREQUENCY	DATE RANGE	NUMBER OF TICKERS	
+1-minute,
+5-minute,
+30-minute,
+1-hour
+1-day	Jan 2005 - Mar 2024
+(see below dates for each ticker)	10120 Tickers	
+
+- Portfolio Data
+Data imput per client
+
+### Data Correlation
+![Heatmap-2](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/d8c184ae-c266-43dc-9055-41f7de44e237)
+
+## Models
+Soft Actor-Critic (SAC1)
+Convolutional Neural Network (CNN)
+Deep Neural Network (DNN)
+
 ## Project Management Flow and Tool
 - Using Jira
 ![image](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/c1e30227-6ad1-4c20-9f36-631acbd7605d)
-
- 
-
-
 
 ## Operations
 ____________________________________________________________
@@ -56,5 +83,14 @@ Index (D=Discussion, B=Brainstorm, A=Adam, J=Javon, N=Nathan)
 - Setup meeting with Professor Marbut @ Tue 3/19/2024 3:00 PM (PST)
 - Setup next Team meeting 3/21/24 @ 3:00 PST
 
- 
+## Team meeting #4 3/21/2024
+- Update progress
+- Documentation discussion and presentations
+- ETL services
+- Feature Engineering
+- SAC, CNN, and DNN models
+- FNN discussion on portfolio integration
+- Portfolio risk related logistics
+- project management updates
+  
 
