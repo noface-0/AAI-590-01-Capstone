@@ -64,15 +64,15 @@ annual_income_score		based off the annual_income
 ![Heatmap-2](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/d8c184ae-c266-43dc-9055-41f7de44e237)
 
 ## Models
-Soft Actor-Critic (SAC1):
-    Is responsible for selecting actions (trading decisions) based on the current state of the market. 
-Proximal Policy Optimization (PPO):
-    is responsible for selecting actions based on the current state. It takes the state as input and outputs the mean and log-standard deviation of a Gaussian     
+- Soft Actor-Critic (SAC1):
+    - Is responsible for selecting actions (trading decisions) based on the current state of the market. 
+- Proximal Policy Optimization (PPO):
+    - is responsible for selecting actions based on the current state. It takes the state as input and outputs the mean and log-standard deviation of a Gaussian     
     distribution, similar to SAC. 
-Feedforward Neural Network (FNN):
-    is used to predict future stock prices, which serves as additional input to the DRL model. 
-Genetic Algorithm (GA):
-    is responsible for structuring the portfolio for an individual with optimal performance based on the trading objective.
+- Feedforward Neural Network (FNN):
+    - is used to predict future stock prices, which serves as additional input to the DRL model. 
+- Genetic Algorithm (GA):
+    - is responsible for structuring the portfolio for an individual with optimal performance based on the trading objective.
 
 ## Project Management Flow and Tool
 - Using Jira - Kanban Method
