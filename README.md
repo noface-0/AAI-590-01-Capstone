@@ -104,10 +104,10 @@ Index (D=Discussion, B=Brainstorm, A=Adam, J=Javon, N=Nathan)
 
 ## Team meeting #3 Date 3/14/2024
 - Updates on progress
-- Discussion about the Project Management tool Jira: Best Practices (A)
-- Work done on the dataset as related to the scrubbing, transformation,and feature engineering (J)
-- Work done on the MRL model (N)
-- What is needed on the Portfolio task (N, A)
+- Discussion about the Project Management tool Jira: Best Practices 
+- Work done on the dataset as related to the scrubbing, transformation,and feature engineering 
+- Work done on the MRL model 
+- What is needed on the Portfolio task 
 - Adam to work on the code for the Portfolio input
 - Nathan and Javon to go over the logistics and fields for the Portfolio
 - decided to do morning written standup emulation with short written updates and if any obstacles
