@@ -32,19 +32,50 @@ FREQUENCY	DATE RANGE	NUMBER OF TICKERS
 (see below dates for each ticker)	10120 Tickers	
 
 - Portfolio Data
-Data imput per client
+Data input per client:
+### Portfolio Fields	dtypes	Notes
+name	object	
+social_security_number_or_taxpayer_identification_number	int	
+address	object	
+telephone_number	int	
+email	object	
+dob	object	Calculate age. 21-29=0, 30-39=1, 40-49=2, 50-59=3, 60-68=4, 69+=5  (0-5)
+id	object	
+employment_status	boolean	0=unemployed 1=employed
+whether_you_are_employed_by_a_brokerage_firm	boolean	0=no 1=yes
+annual_income 	int	if <100000 then 'annual_income_score'=0 if >=100000 and <300000 then = 1 and if >=300000 but < 600000 then = 2 and if >=600000 then = 3
+other_investments	int	
+financial_situation	object	
+tax_status	object	Selection M, W, S, D (S=0, M=1, D=2, W=3)
+investment_experience_and_objectives	object	N=0, S=1, M=2
+investment_time_horizon	object	short=0, medium=1, long=2, none=2
+liquidity_needs_and_tolerance_for_risk	int	Thisis what we are working for the model. It will get updated by the calculations of other fields (in yellow) 0 to 30
+financial_and_trading_record	object	
+net_worth	int	0-10
+trading_experience	int	N=0, S=1, M=2 (N=none, S=some, M=much)
+financial_knowledge 	int	N=none(0), M=Medium(1), G=Good(2)
+		
+Logic networth		 (0-10): 100,000 = 0, 200,000=1 etc. 1mm+=10
+annual_income_score		based off the annual_income
+![image](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/9b7e25a4-a4f6-4fd1-b7a6-35ae787ec8d2)
+
 
 ### Data Correlation
 ![Heatmap-2](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/d8c184ae-c266-43dc-9055-41f7de44e237)
 
 ## Models
-Soft Actor-Critic (SAC1)
-Proximal Policy Optimization (PPO)
-Feedforward Neural Network (FNN)
-Genetic Algorithm (GA)
+Soft Actor-Critic (SAC1):
+    Is responsible for selecting actions (trading decisions) based on the current state of the market. 
+Proximal Policy Optimization (PPO):
+    is responsible for selecting actions based on the current state. It takes the state as input and outputs the mean and log-standard deviation of a Gaussian     
+    distribution, similar to SAC. 
+Feedforward Neural Network (FNN):
+    is used to predict future stock prices, which serves as additional input to the DRL model. 
+Genetic Algorithm (GA):
+    is responsible for structuring the portfolio for an individual with optimal performance based on the trading objective.
 
 ## Project Management Flow and Tool
-- Using Jira
+- Using Jira - Kanban Method
 ![image](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/c1e30227-6ad1-4c20-9f36-631acbd7605d)
 
 ## Operations
@@ -90,9 +121,16 @@ Index (D=Discussion, B=Brainstorm, A=Adam, J=Javon, N=Nathan)
 - ETL services
 - Feature Engineering
 - SAC, PPO, FNN, and GA models
+- Identify the 3 risk factors that the GA will work by
 - FNN discussion on portfolio integration
 - Portfolio risk related logistics
 - project management updates
 - Setup next Team meeting 3/28/24 @ 3:00 PST
   
-
+## Team meeting #5 Date 3/28/2024
+- Updated progress
+- Go over the code review for the SAC, PPO, and FNN
+- Go over the code for the portfolio input screen - create the input_data file
+- Discuss the calculations of the risk factor
+- Related to the risk factor discuss how the GA will tie into the input_data to pickup the risk factor
+- Setup next Team meeting 4/4/24 @ 3:00 PST
