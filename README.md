@@ -67,9 +67,8 @@ annual_income_score		based off the annual_income
 - Soft Actor-Critic (SAC1):
     - Is responsible for selecting actions (trading decisions) based on the current state of the market. 
 - Proximal Policy Optimization (PPO):
-    - is responsible for selecting actions based on the current state. It takes the state as input and outputs the mean and log-standard deviation of a Gaussian    
- distribution, similar to SAC. 
-- Feedforward Neural Network (FNN):
+    - is responsible for selecting actions based on the current state. It takes the state as input and outputs the mean and log-standard deviation of a Gaussian distribution, similar to SAC.    
+ - Feedforward Neural Network (FNN):
     - is used to predict future stock prices, which serves as additional input to the DRL model. 
 - Genetic Algorithm (GA):
     - is responsible for structuring the portfolio for an individual with optimal performance based on the trading objective.
