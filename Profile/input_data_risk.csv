@@ -1,0 +1,4 @@
+name,social_security_number_or_taxpayer_identification_number,address,telephone_number,email,dob,id,employment_status,whether_you_are_employed_by_a_brokerage_firm,annual_income,other_investments,financial_situation,tax_status,investment_experience_and_objectives,investment_time_horizon,liquidity_needs_and_tolerance_for_risk,net_worth,trading_experience,financial_knowledge,Logic networth,age,age_category,annual_income_score
+James Bond,435578,"545 Tribe St. Hollywood, CA 90445",2899098876,jamesb@gmail.com,1966-08-10,7,1,0,400000,0,0.0,0,1,2,2,7000000,2,2,10,58,3,2
+Penny Love,355666,35566 Sunset Blvd. Los Angeles CA 92333,3102908899,pennylove@gmail.com,1970-07-01,67778,1,0,150000,0,0.0,1,1,2,1,300000,0,1,2,54,3,1
+Que Marshall,48907888,456 James St. Boston MA 02030,2119908876,Qmarshall@gmail.com,1957-04-16,6765555,1,0,300000,Y,0.0,1,2,0,2,3000000,2,2,10,67,4,2
