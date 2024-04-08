@@ -1,0 +1,239 @@
+Notes: The 13.1 is about setting up the Athena DB to load the input_data.csv file which is the file that the front end data input produced. (this is the bucket I used)
+I alos have a small code for monitoring the CPU utilization, of course that can be removed.
+
+#@title 13.1: Setup the the Athena DB to accept data input
+from io import StringIO
+
+# Function to upload data to S3
+def upload_data_to_s3(input_data, bucket, s3_path):
+    # Initialize S3 client
+    s3_client = boto3.client('s3')
+
+    # Convert input data to CSV
+    csv_buffer = StringIO()
+    pd.DataFrame([input_data]).to_csv(csv_buffer, header=True, index=False)
+
+    # Upload CSV to S3
+    s3_client.put_object(Bucket=bucket, Key=s3_path, Body=csv_buffer.getvalue())
+    print(f"Data uploaded to s3://{bucket}/{s3_path}")
+
+def store_data_in_athena(input_data):
+    # Define your S3 bucket and path
+    bucket = 'sagemaker-us-east-1-533267346265' #my bucket
+    s3_folder = 'processed/sdairbnb/'
+    file_name = 'input_data.csv'  # the file with the input data saved to the location of the Athena table directory. 
+
+    # S3 path for the CSV file
+    s3_path = f"{s3_folder}{file_name}"
+
+    # Upload data to S3 (Athena directory)
+    upload_data_to_s3(input_data, bucket, s3_path)
+
+#@title 13.2: Define a function for taking new input record, running the feature store, and predicting against th esd_model for a estimated nightly rate
+# Also imbeded is the function for checking the CPU utilization on the EC2 while running the model
+from sklearn.preprocessing import LabelEncoder
+from io import StringIO
+import psutil
+import time
+from sklearn.preprocessing import LabelEncoder
+from io import StringIO
+
+# Initialize AWS SNS client
+sns_client = boto3.client('sns')
+sns_topic_arn = 'arn:aws:sns:us-east-1:533267346265:MyAlert' #My arn
+
+def monitor_cpu_and_alert(threshold=75): # (Monitor) define the incident at utilization over %75
+    """
+    Monitor CPU utilization, send an SNS alert, and trigger CloudWatch metric.
+    """
+    cpu_usage = psutil.cpu_percent(interval=1)
+    if cpu_usage > threshold:
+        # Create a CloudWatch client
+        cloudwatch_client = boto3.client('cloudwatch')
+
+        # Define your CloudWatch metric name and namespace
+        metric_name = 'CPUUtilization'
+        namespace = 'MyAlert'
+
+        # Send CPU usage data to CloudWatch
+        cloudwatch_client.put_metric_data(
+            MetricData=[
+                {
+                    'MetricName': metric_name,
+                    'Dimensions': [],
+                    'Unit': 'Percent',
+                    'Value': cpu_usage
+                }
+            ],
+            Namespace=namespace
+        )
+
+        # Send SNS notification
+        message = f"High CPU Alert! Your CPU utilization is at {cpu_usage}%."
+        sns_client.publish(TopicArn=sns_topic_arn, Message=message)
+        print(message)
+
+# Run model for loading input file
+def load_input_file(): # the function for loading the input file
+    # path to the CSV file within the bucket
+    new_file_key = "processed/sdairbnb/input_data.csv"  # the new input record
+
+    # Retrieve the data from your CSV file
+    new_data_object = s3_client.get_object(Bucket=default_s3_bucket_name, Key=new_file_key)
+    new_data = pd.read_csv(io.BytesIO(new_data_object["Body"].read())) 
+    
+    # Define the columns to be label encoded
+    categorical_features = ['name', 'adress', 'email', 'dob', 'id', 'financial_situation', 'tax_status', 'investment_experience_and_objectives', 'investment_time_horizon', 'financial_and_trading_record']
+
+    # Convert categorical features to string type
+    for feature in categorical_features:
+        new_data[feature] = new_data[feature].astype(str)
+
+    # Apply label encoding
+    label_encoder = LabelEncoder()
+    for feature in categorical_features:
+        new_data[feature] = label_encoder.fit_transform(new_data[feature])
+            
+    # Convert DataFrame to CSV
+    csv_buffer = StringIO()
+    new_data.to_csv(csv_buffer, index=False)
+
+    # Upload the CSV file to S3
+    s3_resource = boto3.resource('s3')
+    file_path = 'sagemaker-us-east-1-533267346265/processed/sdairbnb/input_data.csv'  # This should match the path Athena is configured to read from
+    s3_resource.Object(bucket_name, file_path).put(Body=csv_buffer.getvalue())
+
+    print(f"File uploaded to s3://{file_path}")
+        
+    # Assuming sdairbnb_feature_group is your FeatureGroup object
+    sdairbnb_query = sdairbnb_feature_group.athena_query()
+    sdairbnb_table = sdairbnb_query.table_name
+
+    # Run Athena query and output the results to the specified S3 location
+    sdairbnb_query.run(query_string=query_string, output_location=f"s3://{default_s3_bucket_name}/{prefix}/query_results/")
+    sdairbnb_query.wait()  # Wait for the query to finish
+
+    # Load the query results into a Pandas DataFrame
+    new_data = sdairbnb_query.as_dataframe()
+
+    # Display the first few rows of the dataset
+    print(new_data.head())
+        
+    # Convert the categorial fields
+    categorical_cols = ['name', 'adress', 'email', 'dob', 'id', 'financial_situation', 'tax_status', 'investment_experience_and_objectives', 'investment_time_horizon', 'financial_and_trading_record']
+
+
+    # Initialize a LabelEncoder or use the pre-fitted encoders from training
+    label_encoders = {col: LabelEncoder() for col in categorical_cols}
+
+    for col in categorical_cols:
+        # Fit and transform the column - only if you're re-training or have the same categories
+        # Otherwise, load the pre-fitted LabelEncoder for each column used during training
+        new_data[col] = label_encoders[col].fit_transform(new_data[col])
+    
+       
+    # Call CPU monitoring and alerting during prediction
+    monitor_cpu_and_alert(threshold=75)
+    
+    
+#@title 13.3: Create the front-end input screen
+import ipywidgets as widgets
+from IPython.display import display
+from IPython.display import clear_output
+from datetime import datetime
+import uuid
+
+# Create text widgets for user input
+name = widgets.Text(description='Name:')
+address = widgets.Text(description='Address:')
+telephone_number = widgets.Text(description='Tel:')
+social_security_number_or_taxpayer_identification_number = widgets.Text(description='ID (SS or EIN):')
+email = widgets.Text(description='E-Mail:')
+dob = widgets.IntText(description='D.O.B.:')
+employment_status = widgets.FloatText(description='Employment Status please enter 0 or 1 (E=1,U=0):')
+whether_you_are_employed_by_a_brokerage_firm = widgets.IntText(description='Do you work for a Brokerage (0=No, 1=Yes):')
+annual_income  = widgets.IntText(description='Annual Income:')
+tax_status = widgets.IntText(description='Tax status (M=Married,W=Widdow,S=Single,D=Divorced:')
+trading_experience = widgets.IntText(description='Investment Experience: (0 to 10 being 0 lowest)')
+net_worth = widgets.IntText(description='Networth:')
+financial_knowledge  = widgets.IntText(description='financial_knowledge:(0 to 10 being 0 lowest)')
+
+
+#Button to trigger the input
+input_btn = widgets.Button(
+    description='Enter',
+    button_style='info',  
+    tooltip='Click to input',
+    style={'button_color': 'white'}  
+)
+
+# Output widget to display the input result
+output = widgets.Output()
+
+# Do a white background to the button so it is clear
+input_btn.style.button_color = 'white'
+
+        
+     
+# Display the widgets
+display(widgets.VBox([name, address, telephone_number, social_security_number_or_taxpayer_identification_number, email, dob, employment_status, whether_you_are_employed_by_a_brokerage_firm, annual_income, tax_status, trading_experience,net_worth, financial_knowledge, input_btn, output]))  
+
+#@title 14: Load libraries
+!pip install psutil
+#%%
+#@title 14.1: Check the ARN (Amazon Resource Name) for usage in CloudWatch
+!aws sns create-topic --name MyAlert
+
+#@title 14.2: Loggin the CPU utilization data
+import logging
+import time
+from psutil import cpu_percent
+
+# Setup logging configuration
+logging.basicConfig(filename='cpu_utilization.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def monitor_cpu_utilization_log(interval=1, duration=30):
+    """
+    Monitors and logs the CPU utilization every `interval` seconds for a total of `duration` seconds.
+    
+    :param interval: Time in seconds between measurements
+    :param duration: Total duration to monitor CPU usage
+    """
+    start_time = time.time()
+    while (time.time() - start_time) < duration:
+        current_cpu_percent = cpu_percent(interval=None)  # Measure CPU usage now
+        logging.info(f"CPU Utilization: {current_cpu_percent}%")  # Log CPU usage
+        time.sleep(interval)  # Wait for the next interval
+
+# Call the function to start monitoring
+monitor_cpu_utilization_log(interval=5, duration=30)  
+
+#@title 14.3: Set the CloudWatch client
+
+# Create a CloudWatch client
+cw_client = boto3.client('cloudwatch')
+
+#@title 14.4: Define alarm details
+alarm_name = "High_CPU_Utilization_Alarm"
+alarm_description = "Alarm when CPU Utilization exceeds 70%"
+metric_name = "CPUUtilization"
+namespace = "AWS/EC2"  
+threshold = 75.0
+dimensions = [{"Name": "InstanceId", "Value": "i-1234567890abcdef0"}]  
+
+# Create the CloudWatch alarm
+cw_client.put_metric_alarm(
+    AlarmName=alarm_name,
+    AlarmDescription=alarm_description,
+    ActionsEnabled=True,
+    MetricName=metric_name,
+    Namespace=namespace,
+    Statistic="Average",
+    Dimensions=dimensions,
+    Period=300,  # 5 minutes
+    EvaluationPeriods=1,
+    Threshold=threshold,
+    ComparisonOperator="GreaterThanThreshold",
+    TreatMissingData="notBreaching"
+    
+)
