@@ -77,6 +77,25 @@ annual_income_score		based off the annual_income
 - Using Jira - Kanban Method
 ![image](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/c1e30227-6ad1-4c20-9f36-631acbd7605d)
 
-## Operations
+## Version
+  - Ver 2.0 : Trading with individual portfolios
+  - Ver 1.0: Trading to a single portfolio
+
+## Table Of Contents
+ - Profile: Profile code and sample data files
+ - agents: PPO, SAC, DRL, Base
+ - assets: Visuals
+ - config: deployment code, GA code
+ - dataprocessing: Process data in progress, Heatmaps
+ - deployments: integrating GA portfolio optimization, integrating GA portfolio optimization, Deployment code
+ - documentation: project documentation, work documentation
+ - environments: integrating scalers, creating devcontainer, deployment code
+ - models: integrating GA portfolio optimization in folder runs/fnn, adding in feed forward NN layer, 	
+		integrating scalers
+- pipelines: evaluations, deployment code
+- processing: integrating GA portfolio optimization, deployment code
+- training: integrating GA portfolio optimization in fnn and drl
+- utils: integrating GA portfolio optimization, deployment code
+- Group_Metting: Tracking group meeting notes
 ____________________________________________________________
 
