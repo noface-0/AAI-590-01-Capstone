@@ -27,6 +27,9 @@
 		integrating scalers
 - pipelines: evaluations, deployment code
 - processing: integrating GA portfolio optimization, deployment code
+- training: integrating GA portfolio optimization in fnn and drl
+- utils: integrating GA portfolio optimization, deployment code
+- Group_Metting: Tracking group meeting notes
 
 ## Project Background
 The objective is to build a trading system that at its core are our AI models based on Deep Reinforcement Learning (DRL) in the domain of stock trading. By leveraging advanced machine learning techniques, we aim to develop a system capable of making informed trading decisions autonomously, based on the investor's portfolio. This involves the creation of a model that is traind by many metrics that produce a system that can adhere to the investor's portfolio, be compliant, and execute trades with the goal of maximizing returns. The demonstration will cover the setup, training, monitoring, and evaluation of the DRL model, showcasing its potential to outperform traditional trading strategies.
@@ -94,9 +97,5 @@ annual_income_score		based off the annual_income
 ## Version
   - Ver 2.0 : Trading with individual portfolios
   - Ver 1.0: Trading to a single portfolio
-
-- training: integrating GA portfolio optimization in fnn and drl
-- utils: integrating GA portfolio optimization, deployment code
-- Group_Metting: Tracking group meeting notes
 ____________________________________________________________
 
