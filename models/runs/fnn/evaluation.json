@@ -1,5 +1,7 @@
 {
-    "Validation Loss": 1.9586514578084717,
-    "Mean Absolute Error": 2.439275026321411,
-    "Mean Squared Error": 10.06466293334961
+    "Validation Loss": 0.0036427543736935715,
+    "Mean Absolute Error": 0.05980176106095314,
+    "Mean Squared Error": 0.007285722531378269,
+    "RMSE": 0.0853564441204071,
+    "R-squared": 0.9927358795369404
 }

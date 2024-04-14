@@ -1,52 +1,41 @@
-# Model Parameters
-ERL_PARAMS={
-    "learning_rate": 0.0003,
-    "n_steps": 2048,
-    "batch_size": 64, 
-    "gamma":  0.985, 
-    "ent_coef": 0.01,
-    "seed":312, 
-    "net_dimension":[256, 256], 
-    "target_step":5000, 
+# Model Parameters / rest is set in config.base
+ERL_PARAMS = {
+    "seed":42,
+    "target_step":10000, 
     "eval_gap":30, 
-    "eval_times":1
 }
 
 A2C_PARAMS = {
-    "n_steps": 5, 
-    "ent_coef": 0.01, 
-    "learning_rate": 0.0007
+    "seed":42,
+    "target_step":10000, 
+    "eval_gap":30, 
 }
 
-PPO_PARAMS = {
-    "n_steps": 2048,
-    "ent_coef": 0.01,
-    "learning_rate": 0.00025,
-    "batch_size": 64,
+PPO_PARAMS = { 
+    "seed":42,
+    "target_step":10000, 
+    "eval_gap":30, 
 }
 
 DDPG_PARAMS = {
-    "batch_size": 128, 
-    "buffer_size": 50000, 
-    "learning_rate": 0.001
+    "seed":42,
+    "target_step":10000, 
+    "eval_gap":30, 
 }
 
 TD3_PARAMS = {
-    "batch_size": 100, 
-    "buffer_size": 1000000, 
-    "learning_rate": 0.001
+    "seed":42,
+    "target_step":10000, 
+    "eval_gap":30, 
 }
 
 SAC_PARAMS = {
-    "batch_size": 64,
-    "buffer_size": 100000,
-    "learning_rate": 0.0001,
-    "learning_starts": 100,
-    "ent_coef": "auto_0.1",
-    "net_dimension": [256, 256]
+    "seed":42,
+    "target_step":10000, 
+    "eval_gap":30, 
 }
 
 GA_PARAMS = {
     "mutation_rate": 0.1,
-    "num_generations": 100,
+    "num_generations": 10,
 }

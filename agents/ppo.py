@@ -9,10 +9,17 @@ from agents.base import AgentBase
 from config.base import Config
 
 
+# reference: https://github.com/AI4Finance-Foundation/FinRL
+
+
 class ActorPPO(nn.Module):
     def __init__(self, dims: List[int], state_dim: int, action_dim: int):
         super().__init__()
-        self.net = build_mlp(dims=[state_dim, *dims, action_dim])
+        self.net = build_mlp(
+            [state_dim, *dims, action_dim], 
+            activation=Config().activation, 
+            dropout=0.1
+        )
         self.action_std_log = nn.Parameter(
             torch.zeros((1, action_dim)), requires_grad=True
         )  # trainable parameter
@@ -48,7 +55,11 @@ class ActorPPO(nn.Module):
 class CriticPPO(nn.Module):
     def __init__(self, dims: List[int], state_dim: int, _action_dim: int):
         super().__init__()
-        self.net = build_mlp(dims=[state_dim, *dims, 1])
+        self.net = build_mlp(
+            [state_dim, *dims, 1], 
+            activation=None, 
+            dropout=0.1
+        ) 
 
     def forward(self, state: Tensor) -> Tensor:
         return self.net(state)  # advantage value
@@ -68,9 +79,9 @@ class AgentPPO(AgentBase):
         self.cri_class = getattr(self, "cri_class", CriticPPO)
         AgentBase.__init__(self, net_dims, state_dim, action_dim, gpu_id, args)
 
-        self.ratio_clip = getattr(args, "ratio_clip", 0.25)  # `ratio.clamp(1 - clip, 1 + clip)`
+        self.ratio_clip = getattr(args, "ratio_clip", 0.2)  # `ratio.clamp(1 - clip, 1 + clip)`
         self.lambda_gae_adv = getattr(args, "lambda_gae_adv", 0.95)  # could be 0.80~0.99
-        self.lambda_entropy = getattr(args, "lambda_entropy", 0.01)  # could be 0.00~0.10
+        self.lambda_entropy = getattr(args, "lambda_entropy", 0.10)  # could be 0.00~0.10
         self.lambda_entropy = torch.tensor(
             self.lambda_entropy, dtype=torch.float32, device=self.device
         )
@@ -182,13 +193,12 @@ class AgentPPO(AgentBase):
         )
 
     def get_advantages(
-            self, 
-            rewards: Tensor, 
-            undones: Tensor, 
-            values: Tensor
+        self,
+        rewards: Tensor,
+        undones: Tensor,
+        values: Tensor
     ) -> Tensor:
         advantages = torch.empty_like(values)  # advantage value
-
         masks = undones * self.gamma
         horizon_len = rewards.shape[0]
 
@@ -203,4 +213,5 @@ class AgentPPO(AgentBase):
             advantages[t] = advantage = delta + masks[t] \
                 * self.lambda_gae_adv * advantage
             next_value = values[t]
+
         return advantages

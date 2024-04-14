@@ -6,22 +6,17 @@ import numpy as np
 # from elegantrl.agents import AgentA2C
 from agents.ppo import AgentPPO
 from agents.sac import AgentSAC
+from agents.td3 import AgentTD3
 from config.base import Config
 from utils.training_utils import train_agent
 
 
-MODELS = {"ppo": AgentPPO, "sac": AgentSAC}
+MODELS = {"ppo": AgentPPO, "sac": AgentSAC, "td3": AgentTD3}
 OFF_POLICY_MODELS = ["ddpg", "td3", "sac"]
 ON_POLICY_MODELS = ["ppo"]
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-# MODEL_KWARGS = {x: config.__dict__[f"{x.upper()}_PARAMS"] for x in MODELS.keys()}
-#
-# NOISE = {
-#     "normal": NormalActionNoise,
-#     "ornstein_uhlenbeck": OrnsteinUhlenbeckActionNoise,
-# }
 
 # reference: https://github.com/AI4Finance-Foundation/FinRL
 
@@ -43,11 +38,21 @@ class DRLAgent:
             make a prediction in a test dataset and get results
     """
 
-    def __init__(self, env, price_array, tech_array, turbulence_array):
+    def __init__(
+            self, 
+            env, 
+            price_array, 
+            tech_array, 
+            turbulence_array,
+            objective,
+            agent
+    ):
         self.env = env
         self.price_array = price_array
         self.tech_array = tech_array
         self.turbulence_array = turbulence_array
+        self.objective = objective
+        self.agent = agent
 
     def get_model(self, model_name, model_kwargs):
         env_config = {
@@ -55,6 +60,8 @@ class DRLAgent:
             "tech_array": self.tech_array,
             "turbulence_array": self.turbulence_array,
             "if_train": True,
+            "objective": self.objective,
+            "agent": self.agent
         }
         environment = self.env(config=env_config)
 
@@ -76,14 +83,10 @@ class DRLAgent:
 
         if model_kwargs is not None:
             try:
-                model.learning_rate = model_kwargs["learning_rate"]
-                model.batch_size = model_kwargs["batch_size"]
-                model.gamma = model_kwargs["gamma"]
+                # the rest is set in Config
                 model.seed = model_kwargs["seed"]
-                model.net_dims = model_kwargs["net_dimension"]
                 model.target_step = model_kwargs["target_step"]
                 model.eval_gap = model_kwargs["eval_gap"]
-                model.eval_times = model_kwargs["eval_times"]
 
             except BaseException:
                 raise ValueError(
@@ -118,7 +121,9 @@ class DRLAgent:
             )
             act = actor
             device = agent.device
-        except BaseException:
+        except BaseException as e:
+            print("Error occurred while loading the agent:")
+            print(str(e))
             raise ValueError("Fail to load agent!")
 
         # test on the testing env
@@ -134,6 +139,7 @@ class DRLAgent:
                 action = (
                     a_tensor.detach().cpu().numpy()[0]
                 )  # not need detach(), because with torch.no_grad() outside
+                #print("ACTION: ", action) # Debugging step
                 state, reward, done, _, info = environment.step(action)
 
                 total_asset = (
@@ -148,30 +154,24 @@ class DRLAgent:
                 episode_returns.append(episode_return)
 
                 if done:
+                    environment.save_portfolio_value_log()
+                    environment.save_trade_log()
                     break
 
         # Calculate drawdown
-        episode_total_assets = np.array(episode_total_assets)
-        cumulative_returns = episode_total_assets / episode_total_assets[0]
-        running_max = np.maximum.accumulate(cumulative_returns)
-        drawdown = ((running_max - cumulative_returns) / running_max).max()
+        initial_total_asset = episode_total_assets[0]
+        lowest_asset = min(episode_total_assets)
+        drawdown = (initial_total_asset - lowest_asset) / initial_total_asset
 
-        eval_file_path = os.path.join(
-            BASE_DIR, 'models', 'runs', 'eval', 'evaluation.json'
-        )
-        os.makedirs(os.path.dirname(eval_file_path), exist_ok=True)
+        # Sharpe Ratio calculation
+        risk_free_rate = 0.0 # 0 for simplicity but consider aligning with 3 month T-bill
+        episode_returns_array = np.array(episode_returns)
+        mean_return = episode_returns_array.mean()
+        std_deviation = episode_returns_array.std()
 
-        eval_dict = {
-            "final_episode_return": episode_return,
-            "max_drawdown": drawdown
-        }
+        if std_deviation == 0: # Avoid division by zero
+            sharpe_ratio = 0
+        else:
+            sharpe_ratio = (mean_return - risk_free_rate) / std_deviation
 
-        print("Test Finished")
-        print("episode_total_assets", episode_total_assets)
-        print("episode_return", episode_return)
-        print("max_drawdown", drawdown)
-
-        with open(eval_file_path, 'w') as f:
-            json.dump(eval_dict, f)
-
-        return episode_total_assets, episode_return, drawdown
+        return episode_total_assets, episode_return, drawdown, sharpe_ratio

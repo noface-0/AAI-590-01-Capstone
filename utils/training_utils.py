@@ -72,6 +72,11 @@ def get_rewards_and_steps(env, actor, if_render=False):
 def train_agent(args: Config):
     args.init_before_training()
 
+    # new training file
+    metrics_path = os.path.join(args.cwd, 'learning_metrics.txt')
+    with open(metrics_path, 'w') as file:
+        file.write('') 
+
     env = build_env(args.env_class, args.env_args)
     agent = args.agent_class(
         args.net_dims, 
@@ -99,6 +104,7 @@ def train_agent(args: Config):
         )
         if (evaluator.total_step > args.break_step) \
             or os.path.exists(f"{args.cwd}/stop"):
+            os.makedirs(args.cwd, exist_ok=True)
             torch.save(agent.act.state_dict(), args.cwd + '/actor.pth')
             break  # stop training when reach `break_step` or `mkdir cwd/stop`
 
@@ -190,21 +196,32 @@ class Evaluator:
         episode_returns = rewards_steps_ary[:, 0]
         returns = episode_returns / self.env_eval.initial_total_asset
 
-        cumulative_returns = np.cumsum(episode_returns)
-        running_max = np.maximum.accumulate(cumulative_returns)
-        drawdown = np.zeros_like(cumulative_returns)
-        drawdown[1:] = ((running_max[:-1] - cumulative_returns[1:]) / 
-                        np.maximum(running_max[:-1], 1e-8))
-        drawdown = np.maximum.accumulate(drawdown)
+        # Calculate max drawdown as the minimum of the returns
+        max_drawdown = returns.min()
 
-        # Record returns and drawdown history
+        # Record returns and max drawdown history
         self.returns_history.append(returns.mean())
-        self.drawdown_history.append(drawdown[-1])
+        self.drawdown_history.append(max_drawdown)
 
         used_time = time.time() - self.start_time
         self.recorder.append((self.total_step, used_time, avg_r))
 
+        # Save objc and obja to a file
+        metrics_path = os.path.join(self.cwd, 'learning_metrics.txt')
+        header = "Total Step,Objective C,Objective A\n"
+        metrics = (f"{self.total_step},{logging_tuple[0]:8.4f},"
+                   f"{logging_tuple[1]:8.4f}\n")
+        
+        if not os.path.exists(metrics_path) or \
+           os.stat(metrics_path).st_size == 0:
+            with open(metrics_path, 'w') as file:
+                file.write(header)
+                file.write(metrics)
+        else:
+            with open(metrics_path, 'a') as file:
+                file.write(metrics)
+
         print(f"| {self.total_step:8.2e} | {used_time:8.0f} | "
-              f"{avg_r:8.4f} | {std_r:8.4f} | {avg_s:8.0f} | "
-              f"{logging_tuple[0]:8.4f} | {logging_tuple[1]:8.4f} | "
-              f"{returns.mean():8.6f} | {drawdown[-1]:8.6f} |")
+            f"{avg_r:8.4f} | {std_r:8.4f} | {avg_s:8.0f} | "
+            f"{logging_tuple[0]:8.4f} | {logging_tuple[1]:8.4f} | "
+            f"{returns.mean():8.6f} | {max_drawdown:8.6f} |")

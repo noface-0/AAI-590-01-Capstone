@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import torch.nn as nn
 
 
 # reference: https://github.com/AI4Finance-Foundation/FinRL
@@ -24,26 +25,68 @@ class Config:
         self.agent_class = agent_class  # agent = agent_class(...)
 
         '''Arguments for reward shaping'''
-        self.gamma = 0.99  # discount factor of future rewards
-        self.reward_scale = 1.0  # an approximate target reward usually be closed to 256
+        self.gamma = 0.999  # discount factor of future rewards
+        self.reward_scale = 2**-11 # adjust this based on reward signal. higher for realized gains obj
+        self.reward_obj = 'portfolio_value' # see options below
 
         '''Arguments for training'''
         self.gpu_id = int(0)  # `int` means the ID of single GPU, -1 means CPU
-        self.net_dims = (64, 32)  # the middle layer dimension of MLP (MultiLayer Perceptron)
-        self.learning_rate = 6e-5  # 2 ** -14 ~= 6e-5
+        self.net_dims = [512, 512, 512]  # the middle layer dimension of MLP (MultiLayer Perceptron)
+        self.learning_rate = 0.0003  # 2 ** -14 ~= 6e-5
+        self.activation = nn.ReLU
         self.soft_update_tau = 5e-3  # 2 ** -8 ~= 5e-3
         self.batch_size = int(128)  # num of transitions sampled from replay buffer.
-        self.horizon_len = int(2000)  # collect horizon_len step while exploring, then update network
+        self.horizon_len = int(4000)  # collect horizon_len step while exploring, then update network
         self.buffer_size = None  # ReplayBuffer size. Empty the ReplayBuffer for on-policy.
-        self.repeat_times = 8.0  # repeatedly update network using ReplayBuffer to keep critic's loss small
+        self.repeat_times = 6.0  # repeatedly update network using ReplayBuffer to keep critic's loss small
 
         '''Arguments for evaluate'''
         self.cwd = None  # current working directory to save model. None means set automatically
         self.break_step = +np.inf  # break training if 'total_step > break_step'
         self.eval_times = int(32)  # number of times that get episodic cumulative return
         self.eval_per_step = int(2e4)  # evaluate the agent per training steps
+    
+    def to_dict(self):
+        return self.__dict__
 
     def init_before_training(self):
         if self.cwd is None:  # set cwd (current working directory) for saving model
             self.cwd = f'./{self.env_name}_{self.agent_class.__name__[5:]}'
         os.makedirs(self.cwd, exist_ok=True)
+
+
+# REWARD OBJECTIVE OPTIONS
+# realized_gains - encourages selling for realization
+# portfolio_value - main objective is to increase value / may hold a lot
+# sharpe_ratio - maximizes risk adjusted return
+
+# HELPFUL VALUES
+
+# A2C_PARAMS
+# "n_steps": 5, 
+# "ent_coef": 0.01, 
+# "learning_rate": 0.0007
+
+
+# PPO_PARAMS
+# "n_steps": 2048,
+# "ent_coef": 0.01,
+# "learning_rate": 0.00025,
+# "batch_size": 64
+
+# DDPG_PARAMS
+# "batch_size": 128, 
+# "buffer_size": 50000, 
+# "learning_rate": 0.001
+
+# TD3_PARAMS
+# "batch_size": 100, 
+# "buffer_size": 1000000, 
+# "learning_rate": 0.001
+
+# SAC_PARAMS
+# "batch_size": 256,
+# "buffer_size": 100000,
+# "learning_rate": 0.0003,
+# "learning_starts": 100,
+# "ent_coef": "auto_0.1",

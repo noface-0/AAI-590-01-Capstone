@@ -36,42 +36,36 @@ def process_indicators(df):
     df['day_of_week'] = df['timestamp'].dt.dayofweek
     
     # Check for holidays
-    df['is_holiday'] = df['timestamp'].dt.date.apply(
-        lambda x: int(x in us_holidays))
-    
-    # Compute Unix timestamp
-    df['timestamp'] = df['timestamp'].astype('int64') // 10**9
+    # df['is_holiday'] = df['timestamp'].dt.date.apply(lambda x: int(x in us_holidays))
     
     # Calculate Returns
-    df['returns'] = (df['close'] / df['close'].shift(1) - 1)
+    # df['returns'] = df['close'].pct_change()
     
-    # Calculate general statistics
-    df['avg_Price'] = df["close"].mean()
-    df['avg_Returns'] = df['returns'].mean()
-    df['volatility'] = df['returns'].std()
-    df['volume_Volatility'] = df['volume'].std()
-
     # Calculate Moving Average, Price and Volume change
-    df['moving_Avg'] = df['close'].rolling(window=SMA5_PERIOD).mean()
-    df['price_Change'] = df['close'].pct_change() * 100
-    df['volume_Change'] = df['volume'].diff()
+    # df['moving_Avg'] = df['close'].rolling(window=SMA5_PERIOD).mean()
+    # df['price_Change'] = df['close'].pct_change() * 100
+    # df['volume_Change'] = df['volume'].diff()
     
     # Calculate rolling window statistics
-    df['Rolling_Mean'] = df['close'].rolling(window=ROLLING_WINDOW).mean()
-    df['Rolling_Std'] = df['close'].rolling(window=ROLLING_WINDOW).std()
+    # df['Rolling_Mean'] = df['close'].rolling(window=ROLLING_WINDOW).mean()
+    # df['Rolling_Std'] = df['close'].rolling(window=ROLLING_WINDOW).std()
 
     # Technical Indicators
     df['RSI'] = talib.RSI(df['close'], timeperiod=RSI_PERIOD)
     df['EMA'] = talib.EMA(df['close'], timeperiod=EMA_PERIOD)
-    df['MACD'] = talib.MACD(df['close'], fastperiod=MACD_FASTPERIOD,
-                            slowperiod=MACD_SLOWPERIOD,
-                            signalperiod=MACD_SIGNALPERIOD)[0]
+    df['MACD'], _, _ = talib.MACD(
+        df['close'], 
+        fastperiod=MACD_FASTPERIOD, 
+        slowperiod=MACD_SLOWPERIOD, 
+        signalperiod=MACD_SIGNALPERIOD
+    )
     df['SMA_5'] = talib.SMA(df['close'], timeperiod=SMA5_PERIOD)
     df['SMA_10'] = talib.SMA(df['close'], timeperiod=SMA10_PERIOD)
     df['SMA_20'] = talib.SMA(df['close'], timeperiod=SMA20_PERIOD)
     df['SMA_50'] = talib.SMA(df['close'], timeperiod=SMA50_PERIOD)
     upper, middle, lower = talib.BBANDS(
-        df['close'], timeperiod=BBANDS_PERIOD
+        df['close'], 
+        timeperiod=BBANDS_PERIOD
     )
     df['BBANDS_Upper'] = upper
     df['BBANDS_Middle'] = middle
@@ -81,30 +75,46 @@ def process_indicators(df):
     ).cumsum() / df['volume'].cumsum()
     df['ROC'] = talib.ROC(df['close'], timeperiod=ROC_PERIOD)
     df['ATR'] = talib.ATR(
-        df['high'], df['low'], df['close'], timeperiod=ATR_PERIOD
+        df['high'], 
+        df['low'], 
+        df['close'], 
+        timeperiod=ATR_PERIOD
     )
     df['CCI'] = talib.CCI(
-        df['high'], df['low'], df['close'], timeperiod=CCI_PERIOD
+        df['high'], 
+        df['low'], 
+        df['close'], 
+        timeperiod=CCI_PERIOD
     )
     df['WilliamsR'] = talib.WILLR(
-        df['high'], df['low'], df['close'], timeperiod=WILLR_PERIOD
+        df['high'], 
+        df['low'], 
+        df['close'], 
+        timeperiod=WILLR_PERIOD
     )
-    slowk, slowd = talib.STOCH(df['high'], df['low'], df['close'],
-                               fastk_period=STOCH_FASTK_PERIOD,
-                               slowk_period=STOCH_SLOWK_PERIOD,
-                               slowk_matype=0,
-                               slowd_period=STOCH_SLOWD_PERIOD,
-                               slowd_matype=0)
+    slowk, slowd = talib.STOCH(
+        df['high'], 
+        df['low'], 
+        df['close'], 
+        fastk_period=STOCH_FASTK_PERIOD, 
+        slowk_period=STOCH_SLOWK_PERIOD, 
+        slowk_matype=0, 
+        slowd_period=STOCH_SLOWD_PERIOD, 
+        slowd_matype=0
+    )
     df['Stochastic_SlowK'] = slowk
     df['Stochastic_SlowD'] = slowd
-    df['MFI'] = talib.MFI(df['high'], df['low'], df['close'], df['volume'],
-                          timeperiod=MFI_PERIOD)
+    df['MFI'] = talib.MFI(
+        df['high'], 
+        df['low'], 
+        df['close'], 
+        df['volume'], 
+        timeperiod=MFI_PERIOD
+    )
     
-    # Handle missing data
-    df = df.ffill().bfill().fillna(0)
-    df.dropna(inplace=True)
+    # Fill missing values
+    df.fillna(method='ffill', inplace=True)  # Forward fill
+    df.fillna(method='bfill', inplace=True)  # Backward fill
+    df.fillna(0, inplace=True)
 
-    # Convert back to timestamp after calculations
-    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
-    
     return df

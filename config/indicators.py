@@ -1,17 +1,14 @@
 INDICATORS = [
     'volume',
+    'VIXY',
     'day_of_week', 
-    'is_holiday', 
-    'returns', 
-    'avg_Price',
-    'avg_Returns', 
-    'volatility', 
-    'volume_Volatility', 
-    'moving_Avg',
-    'price_Change', 
-    'volume_Change', 
-    'Rolling_Mean', 
-    'Rolling_Std', 
+    # 'is_holiday', 
+    # 'returns', 
+    # 'moving_Avg',
+    # 'price_Change', 
+    # 'volume_Change', 
+    # 'Rolling_Mean', 
+    # 'Rolling_Std', 
     'RSI',
     'EMA', 
     'MACD', 
@@ -30,5 +27,5 @@ INDICATORS = [
     'Stochastic_SlowK', 
     'Stochastic_SlowD', 
     'MFI',
-    'fnn_pred'
+    # 'fnn_pred'
 ]

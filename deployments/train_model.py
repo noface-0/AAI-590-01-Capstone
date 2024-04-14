@@ -1,5 +1,6 @@
 import os
 import io
+import json
 import shutil
 import argparse
 import pandas as pd
@@ -14,7 +15,14 @@ from training.fnn import train as fnn_train, test as fnn_test
 from training.ga import evolve_portfolio
 from config.indicators import INDICATORS
 from config.tickers import DOW_30_TICKER, SP_500_TICKER
-from config.models import ERL_PARAMS, SAC_PARAMS, GA_PARAMS
+from config.models import (
+    ERL_PARAMS, 
+    SAC_PARAMS,
+    PPO_PARAMS, 
+    TD3_PARAMS,
+    GA_PARAMS
+)
+from config.base import Config
 from config.training import (
     TIME_INTERVAL,
     TRAIN_START_DATE,
@@ -45,7 +53,7 @@ BASE_DIR = os.path.dirname(
 )
 time_interval = int(TIME_INTERVAL.strip("Min"))
 
-exploration_tickers = DOW_30_TICKER + SP_500_TICKER
+exploration_tickers = DOW_30_TICKER #+ SP_500_TICKER
 
 
 def train_model(
@@ -54,15 +62,18 @@ def train_model(
         api_key=API_KEY,
         api_secret=API_SECRET,
         api_url=API_BASE_URL,
+        agent: str=AGENT,
+        process_data=True
 ):
     # Initialize environment
     env = StockTradingEnv
 
     agent_configs = {
-        "ppo": ERL_PARAMS,
-        "sac": ERL_PARAMS
+        "ppo": PPO_PARAMS,
+        "sac": SAC_PARAMS,
+        "td3": TD3_PARAMS,
     }
-    params = agent_configs.get(AGENT)
+    params = agent_configs.get(agent)
 
     if train_data.empty or validation_data.empty:
         logging.info("No training data provided. Auto-downloading.")
@@ -92,41 +103,44 @@ def train_model(
         api_key=API_KEY,
         api_secret=API_SECRET,
         api_url=API_BASE_URL,
-        forecast_steps=time_interval,
+        forecast_steps=100, # this can be set to time_interval
         n_trials=FNN_TRIALS,
-        num_epochs=FNN_EPOCHS
+        num_epochs=FNN_EPOCHS,
+        process_data=process_data
     )
 
-    optimized_portfolio = evolve_portfolio(
-        objective=OBJECTIVE,
-        num_generations=GA_PARAMS['num_generations'],
-        mutation_rate=GA_PARAMS['mutation_rate'],
-        start_date=TRAIN_START_DATE,
-        end_date=TEST_END_DATE,
-        ticker_list=exploration_tickers,
-        time_interval=TIME_INTERVAL,
-        data=train_data
-    )
+    # optimized_portfolio = evolve_portfolio(
+    #     objective=OBJECTIVE,
+    #     num_generations=GA_PARAMS['num_generations'],
+    #     mutation_rate=GA_PARAMS['mutation_rate'],
+    #     start_date=TRAIN_START_DATE,
+    #     end_date=TEST_END_DATE,
+    #     ticker_list=exploration_tickers,
+    #     time_interval=TIME_INTERVAL,
+    #     data=train_data
+    # )
 
-    drl_train(
-        data=train_data,
-        start_date=TRAIN_START_DATE,
-        end_date=TRAIN_END_DATE,
-        ticker_list=optimized_portfolio,
-        time_interval=TIME_INTERVAL, 
-        technical_indicator_list=INDICATORS,
-        drl_lib='elegantrl',
-        env=env,
-        model_name=AGENT,
-        if_vix=True,
-        erl_params=params,
-        cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/papertrading_erl',
-        break_step=1e6,
-        split=split,
-        api_key=api_key,
-        api_secret=api_secret,
-        api_url=api_url
-    )
+    # drl_train(
+    #     data=train_data,
+    #     start_date=TRAIN_START_DATE,
+    #     end_date=TRAIN_END_DATE,
+    #     ticker_list=exploration_tickers,
+    #     time_interval=TIME_INTERVAL, 
+    #     technical_indicator_list=INDICATORS,
+    #     drl_lib='elegantrl',
+    #     env=env,
+    #     model_name=agent,
+    #     if_vix=True,
+    #     erl_params=params,
+    #     cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl',
+    #     break_step=1000000,
+    #     split=split,
+    #     api_key=api_key,
+    #     api_secret=api_secret,
+    #     api_url=api_url,
+    #     objective=OBJECTIVE,
+    #     process_data=process_data
+    # )
     
     # Testing phase
     print("Starting validation phase...")
@@ -141,55 +155,67 @@ def train_model(
         api_key=API_KEY,
         api_secret=API_SECRET,
         api_url=API_BASE_URL,
-        forecast_steps=time_interval
+        forecast_steps=100, # this can be set to time_interval
+        process_data=process_data
     )
-    account_value_erl = drl_test(
-        data=validation_data,
-        start_date=TEST_START_DATE,
-        end_date=TEST_END_DATE,
-        ticker_list=optimized_portfolio,
-        time_interval=TIME_INTERVAL,
-        technical_indicator_list=INDICATORS,
-        drl_lib='elegantrl',
-        env=env,
-        model_name=AGENT,
-        if_vix=True,
-        cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/papertrading_erl',
-        net_dimension=params['net_dimension'],
-        split=split,
-        api_key=api_key,
-        api_secret=api_secret,
-        api_url=api_url
-    )
+    # account_value_erl = drl_test(
+    #     data=validation_data,
+    #     start_date=TEST_START_DATE,
+    #     end_date=TEST_END_DATE,
+    #     ticker_list=exploration_tickers,
+    #     time_interval=TIME_INTERVAL,
+    #     technical_indicator_list=INDICATORS,
+    #     drl_lib='elegantrl',
+    #     env=env,
+    #     model_name=agent,
+    #     if_vix=True,
+    #     cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl',
+    #     net_dimension=Config().net_dims,
+    #     split=split,
+    #     api_key=api_key,
+    #     api_secret=api_secret,
+    #     api_url=api_url,
+    #     objective=OBJECTIVE,
+    #     process_data=process_data
+    # )
     print(
         "DRL Validation phase completed. Final account value:", 
         account_value_erl[0]
     )
 
-    full_data_df = pd.concat(
-        [train_data, validation_data], ignore_index=True
-    ) if not train_data.empty else pd.DataFrame()
+    if not train_data.empty:
+        if not validation_data.empty:
+            full_data_df = pd.concat(
+                [train_data, validation_data], 
+                ignore_index=True
+            )
+        else:
+            full_data_df = train_data.copy()
+    else:
+        full_data_df = pd.DataFrame()
 
     print("Starting full data training phase...")
-    drl_train(
-        data=full_data_df,
-        start_date=TRAIN_START_DATE,
-        end_date=TEST_END_DATE,
-        ticker_list=optimized_portfolio,
-        time_interval=TIME_INTERVAL, 
-        technical_indicator_list=INDICATORS,
-        drl_lib='elegantrl',
-        env=env,
-        model_name=AGENT,
-        if_vix=True,
-        erl_params=params,
-        cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/papertrading_erl_retrain',
-        break_step=1e6,
-        split=False,
-        api_key=api_key,
-        api_secret=api_secret,
-        api_url=api_url
-    )
+    # drl_train(
+    #     data=full_data_df,
+    #     start_date=TRAIN_START_DATE,
+    #     end_date=TEST_END_DATE,
+    #     ticker_list=exploration_tickers,
+    #     time_interval=TIME_INTERVAL, 
+    #     technical_indicator_list=INDICATORS,
+    #     drl_lib='elegantrl',
+    #     env=env,
+    #     model_name=agent,
+    #     if_vix=True,
+    #     erl_params=params,
+    #     cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl_retrain',
+    #     break_step=1000000,
+    #     split=False,
+    #     api_key=api_key,
+    #     api_secret=api_secret,
+    #     api_url=api_url,
+    #     objective=OBJECTIVE,
+    #     process_data=process_data
+    # )
 
 
 def copy_file(local_source_path: str, destination_path: str):
@@ -246,12 +272,12 @@ if __name__ == "__main__":
     )
 
     bucket_name = 'rl-trading-v1-runs'
-    local_path = f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/papertrading_erl_retrain/actor.pth'
+    local_path = f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl_retrain/actor.pth'
     local_filename = os.path.basename(local_path)
-    local_eval_path = f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/evaluation.json'
+    local_eval_path = f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/evaluation.json'
     destination_path = os.path.join("/opt/ml/model", local_filename)
 
-    eval_s3_path = f"runs/evaluation/drl/{OBJECTIVE}/evaluation.json"
+    eval_s3_path = f"runs/evaluation/drl/{OBJECTIVE}/{AGENT}/evaluation.json"
     model_s3_path = 'runs/models/actor.pth'
 
     model = load_model_from_local_path(local_path)

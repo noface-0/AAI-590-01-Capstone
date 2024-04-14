@@ -11,7 +11,11 @@ from config.base import Config
 class ActorSAC(nn.Module):
     def __init__(self, dims: List[int], state_dim: int, action_dim: int):
         super().__init__()
-        self.net = build_mlp(dims=[state_dim, *dims, action_dim * 2])  # Mean and log_std
+        self.net = build_mlp(
+            [state_dim, *dims, action_dim * 2], 
+            activation=Config().activation, 
+            batch_norm=False
+        )
 
     def forward(self, state: Tensor) -> Tensor:
         x = self.net(state)
@@ -34,8 +38,16 @@ class ActorSAC(nn.Module):
 class CriticSAC(nn.Module):
     def __init__(self, dims: List[int], state_dim: int, action_dim: int):
         super().__init__()
-        self.net1 = build_mlp(dims=[state_dim + action_dim, *dims, 1])
-        self.net2 = build_mlp(dims=[state_dim + action_dim, *dims, 1])
+        self.net1 = build_mlp(
+            [state_dim + action_dim, *dims, 1], 
+            activation=Config().activation, 
+            batch_norm=False
+        )
+        self.net2 = build_mlp(
+            [state_dim + action_dim, *dims, 1], 
+            activation=Config().activation, 
+            batch_norm=False
+        )
 
     def forward(self, state: Tensor, action: Tensor) -> Tuple[Tensor, Tensor]:
         sa = torch.cat([state, action], dim=-1)
@@ -56,9 +68,9 @@ class AgentSAC(AgentBase):
         self.cri_class = getattr(self, "cri_class", CriticSAC)
         AgentBase.__init__(self, net_dims, state_dim, action_dim, gpu_id, args)
 
-        self.alpha = getattr(args, "alpha", 0.2)  # Entropy coefficient
+        self.alpha = getattr(args, "ent_coef", 0.2)  # Entropy coefficient
         self.target_entropy = getattr(args, "target_entropy", -action_dim)
-        self.tau = getattr(args, "tau", 0.005)  # Soft update factor for target networks
+        self.tau = getattr(args, "soft_update_tau", 0.005)  # Soft update factor for target networks
 
     def select_action(self, state: Tensor) -> Tensor:
         with torch.no_grad():
@@ -105,9 +117,8 @@ class AgentSAC(AgentBase):
 
     def update_net(self, buffer_items: List[Tensor]) -> Tuple[float, ...]:
         states, actions, rewards, undones = buffer_items
-        next_states = torch.cat(
-            (states[1:], torch.from_numpy(self.states[0]).unsqueeze(0)), dim=0
-        )
+        next_state = torch.from_numpy(self.states[0]).to(states.device)
+        next_states = torch.cat((states[1:], next_state.unsqueeze(0)), dim=0)
 
         q1_loss, q2_loss = self.update_critic(
             states, actions, rewards, undones, next_states

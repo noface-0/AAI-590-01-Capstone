@@ -82,52 +82,61 @@ def build_fnn(
     return model
 
 
+
 def prepare_data(
-        data: pd.DataFrame, 
-        scaler_path: str='models/runs/fnn/scaler.joblib'
+    data: pd.DataFrame,
+    feature_scaler_path: str = 'models/runs/fnn/feature_scaler.joblib',
+    target_scaler_path: str = 'models/runs/fnn/target_scaler.joblib'
 ):
     """
     Prepare data for inference.
 
-    :param data: Input data in the form of a pandas DataFrame.
-    :param scaler_path: Path to the saved StandardScaler.
-
-    :return features_tensor: Features as a torch.Tensor 
-        ready for inference.
+    :param data: Input data as pandas DataFrame.
+    :param feature_scaler_path: Path to feature scaler.
+    :param target_scaler_path: Path to target scaler.
+    :return features_tensor: Features as torch.Tensor.
+    :return target_scaler: Loaded target scaler.
     """
     data = data.reindex(sorted(data.columns), axis=1)
     features = data.drop(
         ['timestamp', 'tic', 'target_high'], axis=1, errors='ignore'
     ).values
-    
-    scaler = joblib.load(scaler_path)
-    features_scaled = scaler.transform(features)
-    
+
+    feature_scaler = joblib.load(feature_scaler_path)
+    features_scaled = feature_scaler.transform(features)
     features_tensor = torch.tensor(features_scaled, dtype=torch.float32)
-    
-    return features_tensor
+
+    target_scaler = joblib.load(target_scaler_path)
+
+    return features_tensor, target_scaler
 
 
 def fnn_prediction(
-        input_data: pd.DataFrame,
-        model_params_path: str = 'models/runs/fnn/fnn_params.json', 
-        model_weights_path: str = 'models/runs/fnn/fnn.pth'
+    input_data: pd.DataFrame,
+    model_params_path: str = 'models/runs/fnn/fnn_params.json',
+    model_weights_path: str = 'models/runs/fnn/fnn.pth'
 ):
     """
     Perform inference with the loaded model.
 
-    :param model: The loaded FNN model.
-    :param input_data: The input data for inference, as a torch.Tensor.
-
-    :return output: The model's output as a torch.Tensor.
+    :param input_data: Input data for inference as pandas DataFrame.
+    :param model_params_path: Path to JSON file with model parameters.
+    :param model_weights_path: Path to saved model weights.
+    :return output_data: Input data with predictions in new column.
     """
-    pred_data = prepare_data(input_data)
+    pred_data, target_scaler = prepare_data(input_data)
+
     model = build_fnn(model_params_path, model_weights_path)
 
     with torch.no_grad():
         output = model(pred_data)
 
-    predictions = output.numpy().flatten().tolist()
-    input_data['fnn_pred'] = predictions
+    predictions_scaled = output.numpy().flatten()
+    predictions = target_scaler.inverse_transform(
+        predictions_scaled.reshape(-1, 1)
+    ).flatten()
 
-    return input_data
+    output_data = input_data.copy()
+    output_data['fnn_pred'] = predictions
+
+    return output_data

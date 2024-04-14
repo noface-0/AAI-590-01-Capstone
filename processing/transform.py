@@ -27,7 +27,8 @@ class AlpacaProcessor:
             API_BASE_URL=API_BASE_URL, 
             api=None,
             save_scaler=False,
-            time_interval='1Min'
+            time_interval='1Min',
+            reset: bool=True
     ):
         if api is None:
             try:
@@ -41,6 +42,12 @@ class AlpacaProcessor:
         
         self.save_scaler = save_scaler
         self.time_interval = time_interval
+
+        if reset:
+            if hasattr(self, 'start'):
+                del self.start
+            if hasattr(self, 'end'):
+                del self.end
 
     def _fetch_data_for_ticker(
             self, 
@@ -264,18 +271,13 @@ class AlpacaProcessor:
             self,
             df: pd.DataFrame, 
         ) -> pd.DataFrame:
-        numerical_cols = sorted(df.select_dtypes(
-            include=['float64', 'int64']
-        ).columns)
-        
-        if self.save_scaler:
-            scaler = StandardScaler()
-            df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
-            dump(scaler, 'models/runs/drl/scaler.joblib')
-        else:
-            scaler = load('models/runs/drl/scaler.joblib')
 
-            df[numerical_cols] = scaler.transform(df[numerical_cols])
+        # additional scaling for extremely large values
+        # arcsinh to avoid NaN with negatives
+        numeric_cols = df.select_dtypes(include=[np.number])
+
+        numeric_cols_transformed = numeric_cols.apply(np.arcsinh)
+        df.update(numeric_cols_transformed)
         
         return df
 

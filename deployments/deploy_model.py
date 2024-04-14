@@ -3,7 +3,7 @@ from fastapi import FastAPI
 
 from config.indicators import INDICATORS
 from config.tickers import DOW_30_TICKER, SP_500_TICKER
-from config.models import ERL_PARAMS, SAC_PARAMS
+from config.models import ERL_PARAMS, SAC_PARAMS, PPO_PARAMS
 from config.training import TIME_INTERVAL, AGENT, OBJECTIVE
 from environments.alpaca import AlpacaPaperTrading
 from utils.utils import get_var
@@ -21,7 +21,7 @@ API_BASE_URL = get_var("ALPACA_API_BASE_URL")
 
 def start_trading():
     agent_configs = {
-        "ppo": ERL_PARAMS,
+        "ppo": PPO_PARAMS,
         "sac": SAC_PARAMS
     }
     bucket_name = 'rl-trading-v1-runs'

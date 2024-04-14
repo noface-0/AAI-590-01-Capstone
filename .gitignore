@@ -12,8 +12,12 @@ devcontainer.env
 
 # models
 fnn.pth
-scaler.joblib
 actor.pth
+*.joblib
+trade_log.txt
+
+# local data files
+data
 
 # Distribution / packaging
 .Python
