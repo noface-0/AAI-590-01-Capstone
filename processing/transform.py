@@ -271,14 +271,29 @@ class AlpacaProcessor:
             self,
             df: pd.DataFrame, 
         ) -> pd.DataFrame:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-        # additional scaling for extremely large values
-        # arcsinh to avoid NaN with negatives
-        numeric_cols = df.select_dtypes(include=[np.number])
+        # exclude target var close price
+        columns_to_exclude = ['close']
+        numeric_cols = df.select_dtypes(include=[np.number]) \
+            .drop(columns=columns_to_exclude)
 
         numeric_cols_transformed = numeric_cols.apply(np.arcsinh)
+
         df.update(numeric_cols_transformed)
-        
+
+        def scale_numeric_columns(group):
+            numeric_cols = group.select_dtypes(include=[np.number]) \
+                .drop(columns=columns_to_exclude)
+            scaler = StandardScaler()
+            scaled_values = scaler.fit_transform(numeric_cols)
+            group.loc[:, numeric_cols.columns] = scaled_values
+            return group
+
+        df = df.groupby(df['timestamp'].dt.date) \
+            .apply(scale_numeric_columns)
+        df.reset_index(drop=True, inplace=True)
+
         return df
 
     # Allows to multithread the add_vix function for quicker execution

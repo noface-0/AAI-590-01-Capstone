@@ -4,6 +4,7 @@ from typing import List
 
 from config.base import Config
 
+# reference: https://github.com/AI4Finance-Foundation/FinRL
 
 class AgentBase:
     def __init__(

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 SINGLE_TICKER = ["AAPL"]
 
+# reference: https://github.com/AI4Finance-Foundation/FinRL
+
 # Dow 30 constituents in 2021/10
 # check https://wrds-www.wharton.upenn.edu/ for U.S. index constituents
 DOW_30_TICKER = [

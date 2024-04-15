@@ -10,14 +10,22 @@ from utils.env_utils import build_env
 # reference: https://github.com/AI4Finance-Foundation/FinRL
 
 
-def get_rewards_and_steps(env, actor, if_render=False):
+def get_rewards_and_steps(
+        env, 
+        actor, 
+        if_render=False, 
+        max_steps=75000 # set this to none for no limit
+):
     if not hasattr(actor, 'get_logprob_entropy'):  # SAC agent
-        device = next(actor.parameters()).device  # net.parameters() is a Python generator.
+        device = next(actor.parameters()).device
         state = env.reset()
         cumulative_returns = 0
         steps = 0
 
         while True:
+            if max_steps:
+                if steps >= max_steps:
+                        break
             if isinstance(state, tuple):
                 state = state[0]
             if len(state.shape) == 1:
@@ -48,12 +56,13 @@ def get_rewards_and_steps(env, actor, if_render=False):
         return cumulative_returns, steps
 
     else: # PPO agent
+        # net.parameters() is a Python generator.
         device = next(actor.parameters()).device
 
         state = env.reset()[0]
         episode_steps = 0
         cumulative_returns = 0.0
-        for episode_steps in range(12345):
+        for episode_steps in range(max_steps):
             tensor_state = torch.as_tensor(
                 state, dtype=torch.float32, device=device
             ).unsqueeze(0)

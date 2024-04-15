@@ -64,7 +64,7 @@ class AgentTD3(AgentBase):
         self.policy_noise = 0.2
         self.noise_clip = 0.5
         self.exploration_noise = 0.1
-        self.update_actor_interval = 2  # Update actor every 2 steps as an example
+        self.update_actor_interval = 2
         self.reward_scale = args.reward_scale
         
         self.actor = ActorTD3(self.state_dim, self.action_dim, self.net_dims).to(self.device)
@@ -103,7 +103,6 @@ class AgentTD3(AgentBase):
             state, action, next_state, reward, done = replay_buffer.sample(self.batch_size)
 
             with torch.no_grad():
-                # Adding noise to action for the target policy smoothing
                 noise = (torch.randn_like(action) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
                 next_action = (self.actor_target(next_state) + noise).clamp(-1, 1)
 
@@ -112,26 +111,20 @@ class AgentTD3(AgentBase):
                 target_Q = torch.min(target_Q1, target_Q2)
                 target_Q = reward + (1 - done) * self.gamma * target_Q
 
-            # Get current Q estimates
             current_Q1, current_Q2 = self.critic(state, action)
 
-            # Compute critic loss
             critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
             self.critic_optimizer.zero_grad()
             critic_loss.backward()
             self.critic_optimizer.step()
 
-            # Delayed policy updates
             if self.total_it % self.update_actor_interval == 0:
-                # Compute actor loss
                 actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
 
-                # Optimize the actor
                 self.actor_optimizer.zero_grad()
                 actor_loss.backward()
                 self.actor_optimizer.step()
 
-                # Soft update the target networks
                 for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
                     target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
                 for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
