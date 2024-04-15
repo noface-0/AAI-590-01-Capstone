@@ -30,7 +30,7 @@
 - training: integrating GA portfolio optimization in fnn and drl
 - utils: integrating GA portfolio optimization, deployment code
 - Group_Metting: Tracking group meeting notes
-- web: 
+- website: 
 
 ## Project Background
 The objective is to build a trading system that at its core are our AI models based on Deep Reinforcement Learning (DRL) in the domain of stock trading. By leveraging advanced machine learning techniques, we aim to develop a system capable of making informed trading decisions autonomously, based on the investor's portfolio. This involves the creation of a model that is traind by many metrics that produce a system that can adhere to the investor's portfolio, be compliant, and execute trades with the goal of maximizing returns. The demonstration will cover the setup, training, monitoring, and evaluation of the DRL model, showcasing its potential to outperform traditional trading strategies.
@@ -76,6 +76,9 @@ financial_knowledge 	int	N=none(0), M=Medium(1), G=Good(2)
 Logic networth		 (0-10): 100,000 = 0, 200,000=1 etc. 1mm+=10
 annual_income_score		based off the annual_income
 ![image](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/9b7e25a4-a4f6-4fd1-b7a6-35ae787ec8d2)
+
+- Profile Form
+ ![image](https://github.com/noface-0/AAI-590-01-Capstone/assets/139398917/fe88f130-7946-4658-a2c5-e86ff9d6a4f5)
 
 
 ### Data Correlation
