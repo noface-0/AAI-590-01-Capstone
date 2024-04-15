@@ -37,10 +37,7 @@ def get_rewards_and_steps(
             with torch.no_grad():
                 tensor_action = actor.get_action(tensor_state)
 
-            if tensor_action.ndim == 0:
-                action = tensor_action.item()
-            else:
-                action = tensor_action.detach().cpu().numpy()
+            action = tensor_action.detach().cpu().numpy()[0]
 
             state, reward, done, _, info = env.step(action)
             cumulative_returns += reward
@@ -81,8 +78,12 @@ def get_rewards_and_steps(
 def train_agent(args: Config):
     args.init_before_training()
 
+    # new training file
     metrics_path = os.path.join(args.cwd, 'learning_metrics.txt')
-    open(metrics_path, 'w').close()
+    metrics_dir = os.path.dirname(metrics_path)
+    os.makedirs(metrics_dir, exist_ok=True)
+    with open(metrics_path, 'w') as file:
+        file.write('')
 
     env = build_env(args.env_class, args.env_args)
     agent = args.agent_class(
@@ -171,12 +172,13 @@ class Evaluator:
         self.eval_step = 0
         self.total_step = 0
         self.start_time = time.time()
-        self.eval_times = eval_times  # number of times that get episodic cumulative return
-        self.eval_per_step = eval_per_step  # evaluate the agent per training steps
+        self.eval_times = eval_times
+        self.eval_per_step = eval_per_step
 
         self.recorder = []
         self.returns_history = []
         self.drawdown_history = []
+        # Adjusted print statement to accommodate dynamic logging values
         print(
             "\n| `step`: Number of samples, total training steps,"
             " or `env.step()` runs."
@@ -184,13 +186,9 @@ class Evaluator:
             "\n| `avgR`: Avg. cumulative rewards per episode."
             "\n| `stdR`: Std dev of cumulative rewards."
             "\n| `avgS`: Avg. steps per episode."
-            "\n| `objC`: Critic network loss function."
-            "\n| `objA`: Actor network avg Q value."
+            "\n| Dynamic logging values for losses and Q values..."
             "\n| `returns`: Avg. returns per episode."
             "\n| `drawdown`: Max drawdown per episode."
-            f"\n| {'step':>8} | {'time':>8} | {'avgR':>8} |"
-            f" {'stdR':>8} | {'avgS':>8} | {'objC':>8} |"
-            f" {'objA':>8} | {'returns':>8} | {'drawdown':>8}"
         )
             
     def evaluate_and_save(
@@ -205,32 +203,32 @@ class Evaluator:
         self.eval_step = self.total_step
 
         rewards_steps_ary = [
-            get_rewards_and_steps(self.env_eval, actor) \
-                for _ in range(self.eval_times)
+            get_rewards_and_steps(self.env_eval, actor)
+            for _ in range(self.eval_times)
         ]
         rewards_steps_ary = np.array(rewards_steps_ary, dtype=np.float32)
-        avg_r = rewards_steps_ary[:, 0].mean()  # average of cumulative rewards
-        std_r = rewards_steps_ary[:, 0].std()  # std of cumulative rewards
-        avg_s = rewards_steps_ary[:, 1].mean()  # average of steps in an episode
+        avg_r = rewards_steps_ary[:, 0].mean()
+        std_r = rewards_steps_ary[:, 0].std()
+        avg_s = rewards_steps_ary[:, 1].mean()
 
         episode_returns = rewards_steps_ary[:, 0]
         returns = episode_returns / self.env_eval.initial_total_asset
 
-        # Calculate max drawdown as the minimum of the returns
         max_drawdown = returns.min()
 
-        # Record returns and max drawdown history
         self.returns_history.append(returns.mean())
         self.drawdown_history.append(max_drawdown)
 
         used_time = time.time() - self.start_time
         self.recorder.append((self.total_step, used_time, avg_r))
 
-        # Save objc and obja to a file
         metrics_path = os.path.join(self.cwd, 'learning_metrics.txt')
-        header = "Total Step,Objective C,Objective A\n"
-        metrics = (f"{self.total_step},{logging_tuple[0]:8.4f},"
-                   f"{logging_tuple[1]:8.4f}\n")
+        header = "Total Step," + ",".join(
+            [f"Value {i+1}" for i in range(len(logging_tuple))]
+        ) + "\n"
+        metrics = f"{self.total_step}," + ",".join(
+            [f"{value:8.4f}" for value in logging_tuple]
+        ) + "\n"
         
         if not os.path.exists(metrics_path) or \
            os.stat(metrics_path).st_size == 0:
@@ -242,6 +240,6 @@ class Evaluator:
                 file.write(metrics)
 
         print(f"| {self.total_step:8.2e} | {used_time:8.0f} | "
-            f"{avg_r:8.4f} | {std_r:8.4f} | {avg_s:8.0f} | "
-            f"{logging_tuple[0]:8.4f} | {logging_tuple[1]:8.4f} | "
-            f"{returns.mean():8.6f} | {max_drawdown:8.6f} |")
+              f"{avg_r:8.4f} | {std_r:8.4f} | {avg_s:8.0f} | "
+              + " | ".join([f"{value:8.4f}" for value in logging_tuple])
+              + f" | {returns.mean():8.6f} | {max_drawdown:8.6f} |")

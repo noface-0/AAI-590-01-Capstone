@@ -199,6 +199,7 @@ class StockTradingEnv(gym.Env):
             return
 
         buy_num_shares = min(self.amount // price[index], actions[index])
+
         if buy_num_shares <= 0:
             return
 

@@ -30,7 +30,7 @@ class ActorSAC(nn.Module):
         dist = Normal(mean, std)
         z = dist.rsample()
         action = torch.tanh(z)
-        return action.squeeze(0)
+        return action
     
     def get_action(self, state: Tensor) -> Tensor:
         return self(state)

@@ -37,7 +37,7 @@ class Config:
         self.soft_update_tau = 5e-3  # 2 ** -8 ~= 5e-3
         self.batch_size = int(128)  # num of transitions sampled from replay buffer.
         self.horizon_len = int(4000)  # collect horizon_len step while exploring, then update network
-        self.buffer_size = None  # ReplayBuffer size. Empty the ReplayBuffer for on-policy.
+        self.buffer_size = 10000  # ReplayBuffer size. Empty the ReplayBuffer for on-policy.
         self.repeat_times = 6.0  # repeatedly update network using ReplayBuffer to keep critic's loss small
 
         '''Arguments for evaluate'''
