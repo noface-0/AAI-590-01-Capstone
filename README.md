@@ -15,7 +15,7 @@
 ### We offer a SaaS based subscription services that provides end users the ability to set up their trading portfolio and automate their stock trading utilizing our AI based system
 ---------------------------------------------------------------------------------------
 ## Table Of Contents
- - Profile: Profile code and sample data files
+ - Profile: Profile code, risk tolerance calculations, and sample data files
  - agents: PPO, SAC, DRL, TD3, Base
  - assets: Visuals
  - config: base configurations for training and DRL model parameters
