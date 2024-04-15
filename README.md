@@ -29,7 +29,7 @@
 - training: training code for all models
 - utils: minor utility functions used across repo
 - Group_Metting: Tracking group meeting notes
-- website: 
+- website: Java scripts, nodejs electron app. app.js part of the profile data push into AWS
 
 ## Project Background
 The objective is to build a trading system that at its core are our AI models based on Deep Reinforcement Learning (DRL) in the domain of stock trading. By leveraging advanced machine learning techniques, we aim to develop a system capable of making informed trading decisions autonomously, based on the investor's portfolio. This involves the creation of a model that is traind by many metrics that produce a system that can adhere to the investor's portfolio, be compliant, and execute trades with the goal of maximizing returns. The demonstration will cover the setup, training, monitoring, and evaluation of the DRL model, showcasing its potential to outperform traditional trading strategies. We are using a combination of Feedforward Neural Network (FNN), Soft Actor-Critic (SAC) and Proximal Policy Optimization (PPO) for the training of the Stock Trading section
