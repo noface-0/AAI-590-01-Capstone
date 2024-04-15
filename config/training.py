@@ -5,7 +5,7 @@ TEST_END_DATE="2024-04-09"
 TIME_INTERVAL="1Min"
 TRAIN_SPLIT=0.7 # this is for pre-supplied data
 
-FNN_EPOCHS=500
+FNN_EPOCHS=10
 FNN_TRIALS=3
 
 AGENT="ppo"

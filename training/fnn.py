@@ -4,8 +4,10 @@ import torch
 import numpy as np
 import pandas as pd
 import torch.nn as nn
+from tqdm import tqdm
 from joblib import dump, load
 from torch.utils.data import DataLoader, TensorDataset
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
@@ -83,7 +85,7 @@ def objective(
         trial, 
         data: pd.DataFrame, 
         forecast_steps: int=5, 
-        num_epochs: int=100
+        num_epochs: int=5
 ):
     lr = trial.suggest_float('lr', 1e-5, 1e-1, log=True)
     hidden_sizes = trial.suggest_categorical(
@@ -136,7 +138,7 @@ def train(
     api_url=None,
     forecast_steps=5,
     n_trials=10, 
-    num_epochs=1e5,
+    num_epochs=100,
     process_data: bool=True
 ):
     dp = AlpacaProcessor(api_key, api_secret, api_url)
@@ -177,7 +179,7 @@ def train(
             trial, 
             data, 
             forecast_steps, 
-            num_epochs
+            num_epochs=3
         ),
         n_trials=n_trials
     )
@@ -195,11 +197,22 @@ def train(
     
     criterion = nn.HuberLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    
+
+    early_stopping_patience = 10
+    early_stopping_counter = 0
+    best_val_loss = float('inf')  
+
+    scheduler = ReduceLROnPlateau(
+        optimizer, 
+        mode='min', 
+        factor=0.1, 
+        patience=5, 
+        verbose=True
+    )
     training_losses = []
     validation_losses = []
 
-    for epoch in range(num_epochs):
+    for epoch in tqdm(range(num_epochs)):
         model.train()
         train_loss = 0
         for inputs, targets in train_loader:
@@ -221,8 +234,22 @@ def train(
                 val_loss += loss.item()
         val_loss /= len(val_loader)
         validation_losses.append(val_loss)
-    
-    torch.save(model.state_dict(), 'models/runs/fnn/fnn.pth')
+        
+        scheduler.step(val_loss)
+        
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            early_stopping_counter = 0
+
+            torch.save(model.state_dict(), 'models/runs/fnn/fnn.pth')
+        else:
+            early_stopping_counter += 1
+            print(f"EarlyStopping counter: "
+                  f"{early_stopping_counter} out of "
+                  f"{early_stopping_patience}")
+            if early_stopping_counter >= early_stopping_patience:
+                print("Early stopping triggered.")
+                break
 
     loss_data = {
         "training_losses": training_losses,

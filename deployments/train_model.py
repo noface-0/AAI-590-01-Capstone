@@ -103,44 +103,44 @@ def train_model(
         api_key=API_KEY,
         api_secret=API_SECRET,
         api_url=API_BASE_URL,
-        forecast_steps=100, # this can be set to time_interval
+        forecast_steps=60, # this can be set to time_interval
         n_trials=FNN_TRIALS,
         num_epochs=FNN_EPOCHS,
         process_data=process_data
     )
 
-    # optimized_portfolio = evolve_portfolio(
-    #     objective=OBJECTIVE,
-    #     num_generations=GA_PARAMS['num_generations'],
-    #     mutation_rate=GA_PARAMS['mutation_rate'],
-    #     start_date=TRAIN_START_DATE,
-    #     end_date=TEST_END_DATE,
-    #     ticker_list=exploration_tickers,
-    #     time_interval=TIME_INTERVAL,
-    #     data=train_data
-    # )
+    optimized_portfolio = evolve_portfolio(
+        objective=OBJECTIVE,
+        num_generations=GA_PARAMS['num_generations'],
+        mutation_rate=GA_PARAMS['mutation_rate'],
+        start_date=TRAIN_START_DATE,
+        end_date=TEST_END_DATE,
+        ticker_list=exploration_tickers,
+        time_interval=TIME_INTERVAL,
+        data=train_data
+    )
 
-    # drl_train(
-    #     data=train_data,
-    #     start_date=TRAIN_START_DATE,
-    #     end_date=TRAIN_END_DATE,
-    #     ticker_list=exploration_tickers,
-    #     time_interval=TIME_INTERVAL, 
-    #     technical_indicator_list=INDICATORS,
-    #     drl_lib='elegantrl',
-    #     env=env,
-    #     model_name=agent,
-    #     if_vix=True,
-    #     erl_params=params,
-    #     cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl',
-    #     break_step=1000000,
-    #     split=split,
-    #     api_key=api_key,
-    #     api_secret=api_secret,
-    #     api_url=api_url,
-    #     objective=OBJECTIVE,
-    #     process_data=process_data
-    # )
+    drl_train(
+        data=train_data,
+        start_date=TRAIN_START_DATE,
+        end_date=TRAIN_END_DATE,
+        ticker_list=exploration_tickers,
+        time_interval=TIME_INTERVAL, 
+        technical_indicator_list=INDICATORS,
+        drl_lib='elegantrl',
+        env=env,
+        model_name=agent,
+        if_vix=True,
+        erl_params=params,
+        cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl',
+        break_step=1000000,
+        split=split,
+        api_key=api_key,
+        api_secret=api_secret,
+        api_url=api_url,
+        objective=OBJECTIVE,
+        process_data=process_data
+    )
     
     # Testing phase
     print("Starting validation phase...")
@@ -158,26 +158,26 @@ def train_model(
         forecast_steps=100, # this can be set to time_interval
         process_data=process_data
     )
-    # account_value_erl = drl_test(
-    #     data=validation_data,
-    #     start_date=TEST_START_DATE,
-    #     end_date=TEST_END_DATE,
-    #     ticker_list=exploration_tickers,
-    #     time_interval=TIME_INTERVAL,
-    #     technical_indicator_list=INDICATORS,
-    #     drl_lib='elegantrl',
-    #     env=env,
-    #     model_name=agent,
-    #     if_vix=True,
-    #     cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl',
-    #     net_dimension=Config().net_dims,
-    #     split=split,
-    #     api_key=api_key,
-    #     api_secret=api_secret,
-    #     api_url=api_url,
-    #     objective=OBJECTIVE,
-    #     process_data=process_data
-    # )
+    account_value_erl = drl_test(
+        data=validation_data,
+        start_date=TEST_START_DATE,
+        end_date=TEST_END_DATE,
+        ticker_list=exploration_tickers,
+        time_interval=TIME_INTERVAL,
+        technical_indicator_list=INDICATORS,
+        drl_lib='elegantrl',
+        env=env,
+        model_name=agent,
+        if_vix=True,
+        cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl',
+        net_dimension=Config().net_dims,
+        split=split,
+        api_key=api_key,
+        api_secret=api_secret,
+        api_url=api_url,
+        objective=OBJECTIVE,
+        process_data=process_data
+    )
     print(
         "DRL Validation phase completed. Final account value:", 
         account_value_erl[0]
@@ -195,27 +195,27 @@ def train_model(
         full_data_df = pd.DataFrame()
 
     print("Starting full data training phase...")
-    # drl_train(
-    #     data=full_data_df,
-    #     start_date=TRAIN_START_DATE,
-    #     end_date=TEST_END_DATE,
-    #     ticker_list=exploration_tickers,
-    #     time_interval=TIME_INTERVAL, 
-    #     technical_indicator_list=INDICATORS,
-    #     drl_lib='elegantrl',
-    #     env=env,
-    #     model_name=agent,
-    #     if_vix=True,
-    #     erl_params=params,
-    #     cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl_retrain',
-    #     break_step=1000000,
-    #     split=False,
-    #     api_key=api_key,
-    #     api_secret=api_secret,
-    #     api_url=api_url,
-    #     objective=OBJECTIVE,
-    #     process_data=process_data
-    # )
+    drl_train(
+        data=full_data_df,
+        start_date=TRAIN_START_DATE,
+        end_date=TEST_END_DATE,
+        ticker_list=exploration_tickers,
+        time_interval=TIME_INTERVAL, 
+        technical_indicator_list=INDICATORS,
+        drl_lib='elegantrl',
+        env=env,
+        model_name=agent,
+        if_vix=True,
+        erl_params=params,
+        cwd=f'{BASE_DIR}/models/runs/drl/{OBJECTIVE}/{AGENT}/papertrading_erl_retrain',
+        break_step=1000000,
+        split=False,
+        api_key=api_key,
+        api_secret=api_secret,
+        api_url=api_url,
+        objective=OBJECTIVE,
+        process_data=process_data
+    )
 
 
 def copy_file(local_source_path: str, destination_path: str):
