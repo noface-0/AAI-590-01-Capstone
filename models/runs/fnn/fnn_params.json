@@ -1,1 +1,1 @@
-{"input_size": 14, "hidden_sizes": [64, 32], "output_size": 1, "dropout_rate": 0.5, "batch_norm": false}
+{"input_size": 25, "hidden_sizes": [128, 64], "output_size": 1, "dropout_rate": 0.5, "batch_norm": false}
