@@ -9,6 +9,9 @@ from config.base import Config
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
+# reference: https://github.com/AI4Finance-Foundation/FinRL
+
+
 class StockTradingEnv(gym.Env):
     def __init__(
         self,
@@ -250,6 +253,11 @@ class StockTradingEnv(gym.Env):
     def adjust_reward_scaling(self):
         # not implemented yet
         return self.reward_scale_base
+    
+    def calculate_total_asset(self):
+        return self.amount + (
+            self.stocks * self.price_ary[self.day]
+        ).sum()
 
     def calculate_sharpe_ratio(self, asset_change):
         current_return = asset_change / self.total_asset

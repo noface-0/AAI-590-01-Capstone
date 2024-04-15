@@ -48,16 +48,17 @@ class AgentTD3(AgentBase):
         gpu_id: int = 0, 
         args: Config = Config()
     ):
-        print(net_dims)
         self.if_off_policy = True
         self.act_class = getattr(self, "act_class", ActorTD3)
         self.cri_class = getattr(self, "cri_class", CriticTD3)
-        AgentBase.__init__(self, net_dims, state_dim, action_dim, gpu_id, args)
+        AgentBase.__init__(self, net_dims, state_dim, action_dim, 
+                           gpu_id, args)
 
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.net_dims = net_dims
-        self.device= torch.device(f'cuda:{gpu_id}' if gpu_id >= 0 else 'cpu')
+        self.device = torch.device(f'cuda:{gpu_id}' if gpu_id >= 0 
+                                   else 'cpu')
         
         self.gamma = args.gamma
         self.tau = args.soft_update_tau
@@ -67,13 +68,17 @@ class AgentTD3(AgentBase):
         self.update_actor_interval = 2
         self.reward_scale = args.reward_scale
         
-        self.actor = ActorTD3(self.state_dim, self.action_dim, self.net_dims).to(self.device)
+        self.actor = ActorTD3(self.state_dim, self.action_dim, 
+                              self.net_dims).to(self.device)
         self.actor_target = deepcopy(self.actor)
-        self.actor_optimizer = Adam(self.actor.parameters(), lr=args.learning_rate)
+        self.actor_optimizer = Adam(self.actor.parameters(), 
+                                    lr=args.learning_rate)
         
-        self.critic = CriticTD3(self.state_dim, self.action_dim, self.net_dims).to(self.device)
+        self.critic = CriticTD3(self.state_dim, self.action_dim, 
+                                self.net_dims).to(self.device)
         self.critic_target = deepcopy(self.critic)
-        self.critic_optimizer = Adam(self.critic.parameters(), lr=args.learning_rate)
+        self.critic_optimizer = Adam(self.critic.parameters(), 
+                                     lr=args.learning_rate)
 
         self.total_it = 0
 
@@ -92,48 +97,72 @@ class AgentTD3(AgentBase):
 
             state = next_state if not done else env.reset()
 
-        return np.array(states), np.array(actions), np.array(rewards), np.array(dones)
-
+        return (np.array(states), np.array(actions), 
+                np.array(rewards), np.array(dones))
     def update_net(self, replay_buffer):
         obj_critics = 0.0
         obj_actors = 0.0
 
         for _ in range(int(replay_buffer.size / self.batch_size)):
             self.total_it += 1
-            state, action, next_state, reward, done = replay_buffer.sample(self.batch_size)
+            state, action, next_state, reward, done = \
+                replay_buffer.sample(self.batch_size)
 
             with torch.no_grad():
-                noise = (torch.randn_like(action) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
-                next_action = (self.actor_target(next_state) + noise).clamp(-1, 1)
+                noise = (torch.randn_like(action) * self.policy_noise)\
+                    .clamp(-self.noise_clip, self.noise_clip)
+                next_action = (self.actor_target(next_state) + noise)\
+                    .clamp(-1, 1)
 
                 # Compute the target Q value
-                target_Q1, target_Q2 = self.critic_target(next_state, next_action)
+                target_Q1, target_Q2 = self.critic_target(next_state, 
+                                                          next_action)
                 target_Q = torch.min(target_Q1, target_Q2)
                 target_Q = reward + (1 - done) * self.gamma * target_Q
 
             current_Q1, current_Q2 = self.critic(state, action)
 
-            critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
+            critic_loss = F.mse_loss(current_Q1, target_Q) + \
+                F.mse_loss(current_Q2, target_Q)
             self.critic_optimizer.zero_grad()
             critic_loss.backward()
             self.critic_optimizer.step()
 
             if self.total_it % self.update_actor_interval == 0:
-                actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
+                actor_loss = -self.critic.Q1(
+                    state, self.actor(state)
+                ).mean()
 
                 self.actor_optimizer.zero_grad()
                 actor_loss.backward()
                 self.actor_optimizer.step()
 
-                for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-                    target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
-                for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                    target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+                for param, target_param in zip(
+                    self.critic.parameters(), 
+                    self.critic_target.parameters()
+                ):
+                    target_param.data.copy_(
+                        self.tau * param.data + 
+                        (1 - self.tau) * target_param.data
+                    )
+                for param, target_param in zip(
+                    self.actor.parameters(), 
+                    self.actor_target.parameters()
+                ):
+                    target_param.data.copy_(
+                        self.tau * param.data + 
+                        (1 - self.tau) * target_param.data
+                    )
 
             obj_critics += critic_loss.item()
-            obj_actors += actor_loss.item() if self.total_it % self.update_actor_interval == 0 else 0
+            obj_actors += actor_loss.item() if (
+                self.total_it % self.update_actor_interval == 0
+            ) else 0
 
-        return obj_critics / self.total_it, obj_actors / (self.total_it // self.update_actor_interval)
+        return (
+            obj_critics / self.total_it, 
+            obj_actors / (self.total_it // self.update_actor_interval)
+        )
 
     def select_action(self, state, noise=True):
         state = torch.FloatTensor(state.reshape(1, -1)).to(self.device)
@@ -142,6 +171,8 @@ class AgentTD3(AgentBase):
             action = self.actor(state).cpu().data.numpy().flatten()
         self.actor.train()
         if noise:
-            action += np.random.normal(0, self.exploration_noise, size=action.shape)
+            action += np.random.normal(
+                0, self.exploration_noise, size=action.shape
+            )
         return np.clip(action, -1, 1)
 

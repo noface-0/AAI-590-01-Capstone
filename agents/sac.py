@@ -9,7 +9,12 @@ from config.base import Config
 
 
 class ActorSAC(nn.Module):
-    def __init__(self, dims: List[int], state_dim: int, action_dim: int):
+    def __init__(
+            self, 
+            dims: List[int], 
+            state_dim: int, 
+            action_dim: int
+    ):
         super().__init__()
         self.net = build_mlp(
             [state_dim, *dims, action_dim * 2], 
@@ -36,7 +41,12 @@ class ActorSAC(nn.Module):
 
 
 class CriticSAC(nn.Module):
-    def __init__(self, dims: List[int], state_dim: int, action_dim: int):
+    def __init__(
+            self, 
+            dims: List[int], 
+            state_dim: int, 
+            action_dim: int
+    ):
         super().__init__()
         self.net1 = build_mlp(
             [state_dim + action_dim, *dims, 1], 
@@ -49,7 +59,11 @@ class CriticSAC(nn.Module):
             batch_norm=False
         )
 
-    def forward(self, state: Tensor, action: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(
+            self, 
+            state: Tensor, 
+            action: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         sa = torch.cat([state, action], dim=-1)
         return self.net1(sa), self.net2(sa)
 
@@ -66,7 +80,9 @@ class AgentSAC(AgentBase):
         self.if_off_policy = True
         self.act_class = getattr(self, "act_class", ActorSAC)
         self.cri_class = getattr(self, "cri_class", CriticSAC)
-        AgentBase.__init__(self, net_dims, state_dim, action_dim, gpu_id, args)
+        AgentBase.__init__(
+            self, net_dims, state_dim, action_dim, gpu_id, args
+        )
 
         self.alpha = getattr(args, "ent_coef", 0.2)  # Entropy coefficient
         self.target_entropy = getattr(args, "target_entropy", -action_dim)
@@ -115,10 +131,15 @@ class AgentSAC(AgentBase):
 
         return states, actions, rewards, undones
 
-    def update_net(self, buffer_items: List[Tensor]) -> Tuple[float, ...]:
+    def update_net(
+            self, buffer_items: List[Tensor]
+    ) -> Tuple[float, ...]:
         states, actions, rewards, undones = buffer_items
-        next_state = torch.from_numpy(self.states[0]).to(states.device)
-        next_states = torch.cat((states[1:], next_state.unsqueeze(0)), dim=0)
+        next_state = torch.from_numpy(self.states[0])
+        next_state = next_state.to(states.device)
+        next_states = torch.cat(
+            (states[1:], next_state.unsqueeze(0)), dim=0
+        )
 
         q1_loss, q2_loss = self.update_critic(
             states, actions, rewards, undones, next_states
@@ -130,7 +151,9 @@ class AgentSAC(AgentBase):
 
         return q1_loss.item(), q2_loss.item(), actor_loss.item()
 
-    def update_critic(self, states, actions, rewards, undones, next_states):
+    def update_critic(
+            self, states, actions, rewards, undones, next_states
+    ):
         # Compute target Q-values
         with torch.no_grad():
             next_actions = self.act.get_action(next_states)

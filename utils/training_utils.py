@@ -81,10 +81,8 @@ def get_rewards_and_steps(
 def train_agent(args: Config):
     args.init_before_training()
 
-    # new training file
     metrics_path = os.path.join(args.cwd, 'learning_metrics.txt')
-    with open(metrics_path, 'w') as file:
-        file.write('') 
+    open(metrics_path, 'w').close()
 
     env = build_env(args.env_class, args.env_args)
     agent = args.agent_class(
@@ -96,26 +94,39 @@ def train_agent(args: Config):
     )
     agent.states = env.reset()[0][np.newaxis, :]
 
-    evaluator = Evaluator(eval_env=build_env(args.env_class, args.env_args),
-                          eval_per_step=args.eval_per_step,
-                          eval_times=args.eval_times,
-                          cwd=args.cwd)
+    evaluator = Evaluator(
+        eval_env=build_env(args.env_class, args.env_args),
+        eval_per_step=args.eval_per_step,
+        eval_times=args.eval_times,
+        cwd=args.cwd
+    )
+
     torch.set_grad_enabled(False)
-    while True: # start training
-        buffer_items = agent.explore_env(env, args.horizon_len)
+    
+    try:
+        while True:
+            buffer_items = agent.explore_env(env, args.horizon_len)
 
+            torch.set_grad_enabled(True)
+            logging_tuple = agent.update_net(buffer_items)
+            torch.set_grad_enabled(False)
+
+            evaluator.evaluate_and_save(agent.act, args.horizon_len,
+                                        logging_tuple)
+
+            stop_condition = evaluator.total_step > args.break_step
+            stop_file_exists = os.path.exists(f"{args.cwd}/stop")
+            if stop_condition or stop_file_exists:
+                if not os.path.exists(args.cwd):
+                    os.makedirs(args.cwd, exist_ok=True)
+                actor_path = os.path.join(args.cwd, 'actor.pth')
+                torch.save(agent.act.state_dict(), actor_path)
+                break
+
+    except Exception as e:
+        print(f"Error during training: {e}")
+    finally:
         torch.set_grad_enabled(True)
-        logging_tuple = agent.update_net(buffer_items)
-        torch.set_grad_enabled(False)
-
-        evaluator.evaluate_and_save(
-            agent.act, args.horizon_len, logging_tuple
-        )
-        if (evaluator.total_step > args.break_step) \
-            or os.path.exists(f"{args.cwd}/stop"):
-            os.makedirs(args.cwd, exist_ok=True)
-            torch.save(agent.act.state_dict(), args.cwd + '/actor.pth')
-            break  # stop training when reach `break_step` or `mkdir cwd/stop`
 
 
 def render_agent(

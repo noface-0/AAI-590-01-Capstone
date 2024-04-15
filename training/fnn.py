@@ -47,25 +47,30 @@ def prepare_data(
     )
 
     # scaling on training after split to prevent leakage
+    feature_scaler_path = 'models/runs/fnn/feature_scaler.joblib'
+    target_scaler_path = 'models/runs/fnn/target_scaler.joblib'
     if save_scaler:
         feature_scaler = StandardScaler()
         X_train_scaled = feature_scaler.fit_transform(X_train)
         X_val_scaled = feature_scaler.transform(X_val)
-        dump(feature_scaler, 'models/runs/fnn/feature_scaler.joblib')
+        dump(feature_scaler, feature_scaler_path)
 
         target_scaler = StandardScaler()
-        y_train_scaled = target_scaler.fit_transform(y_train.reshape(-1, 1)).flatten()
-        y_val_scaled = target_scaler.transform(y_val.reshape(-1, 1)).flatten()
-        dump(target_scaler, 'models/runs/fnn/target_scaler.joblib')
+        y_train_scaled = target_scaler.fit_transform(
+            y_train.reshape(-1, 1)).flatten()
+        y_val_scaled = target_scaler.transform(
+            y_val.reshape(-1, 1)).flatten()
+        dump(target_scaler, target_scaler_path)
     else:
-        # load existing scalers and apply them without fitting
-        feature_scaler = load('models/runs/fnn/feature_scaler.joblib')
+        feature_scaler = load(feature_scaler_path)
         X_train_scaled = feature_scaler.transform(X_train)
         X_val_scaled = feature_scaler.transform(X_val)
 
-        target_scaler = load('models/runs/fnn/target_scaler.joblib')
-        y_train_scaled = target_scaler.transform(y_train.reshape(-1, 1)).flatten()
-        y_val_scaled = target_scaler.transform(y_val.reshape(-1, 1)).flatten()
+        target_scaler = load(target_scaler_path)
+        y_train_scaled = target_scaler.transform(
+            y_train.reshape(-1, 1)).flatten()
+        y_val_scaled = target_scaler.transform(
+            y_val.reshape(-1, 1)).flatten()
 
     X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
     y_train_tensor = torch.tensor(y_train_scaled, dtype=torch.float32)
@@ -91,13 +96,11 @@ def objective(
     hidden_sizes = trial.suggest_categorical(
         'hidden_sizes', [(32, 16), (64, 32), (128, 64), (256, 128)]
     )
-
     X_train, train_dataset, val_dataset, \
     train_loader, val_loader = prepare_data(
         data=data, 
         forecast_steps=forecast_steps
     )
-
     model = FNN(
         input_size=X_train.shape[1], 
         hidden_sizes=hidden_sizes, 
@@ -120,7 +123,8 @@ def objective(
         with torch.no_grad():
             for inputs, targets in val_loader:
                 outputs = model(inputs)
-                val_loss += criterion(outputs.squeeze(), targets).item()
+                val_loss += \
+                    criterion(outputs.squeeze(), targets).item()
         val_loss /= len(val_loader)
     
     return val_loss

@@ -3,7 +3,7 @@ import os
 import json
 import torch
 import numpy as np
-# from elegantrl.agents import AgentA2C
+
 from agents.ppo import AgentPPO
 from agents.sac import AgentSAC
 from agents.td3 import AgentTD3
@@ -65,11 +65,13 @@ class DRLAgent:
         }
         environment = self.env(config=env_config)
 
-        env_args = {'config': env_config,
-              'env_name': environment.env_name,
-              'state_dim': environment.state_dim,
-              'action_dim': environment.action_dim,
-              'if_discrete': False}
+        env_args = {
+            'config': env_config,
+            'env_name': environment.env_name,
+            'state_dim': environment.state_dim,
+            'action_dim': environment.action_dim,
+            'if_discrete': False
+        }
         
         agent = MODELS[model_name]
 
@@ -81,18 +83,10 @@ class DRLAgent:
         )
         model.if_off_policy = model_name in OFF_POLICY_MODELS
 
-        if model_kwargs is not None:
-            try:
-                # the rest is set in Config
-                model.seed = model_kwargs["seed"]
-                model.target_step = model_kwargs["target_step"]
-                model.eval_gap = model_kwargs["eval_gap"]
+        for key in ('seed', 'target_step', 'eval_gap'):
+            if key in model_kwargs:
+                setattr(model, key, model_kwargs[key])
 
-            except BaseException:
-                raise ValueError(
-                    "Fail to read arguments, please check "
-                    "'model_kwargs' input."
-                )
         return model
 
     def train_model(self, model, cwd, total_timesteps=5000):
@@ -103,75 +97,51 @@ class DRLAgent:
     @staticmethod
     def DRL_prediction(model_name, cwd, net_dimension, environment):
         if model_name not in MODELS:
-            raise NotImplementedError("NotImplementedError")
-        
+            raise NotImplementedError(
+                f"Model '{model_name}' not implemented."
+            )
+
         agent_class = MODELS[model_name]
         environment.env_num = 1
         agent = agent_class(
-            net_dimension, environment.state_dim, environment.action_dim
+            net_dimension, environment.state_dim, 
+            environment.action_dim
         )
         actor = agent.act
 
-        # load agent
-        try:
-            cwd = cwd + '/actor.pth'
-            print(f"| load actor from: {cwd}")
-            actor.load_state_dict(
-                torch.load(cwd, map_location=lambda storage, loc: storage)
-            )
-            act = actor
-            device = agent.device
-        except BaseException as e:
-            print("Error occurred while loading the agent:")
-            print(str(e))
-            raise ValueError("Fail to load agent!")
+        model_path = os.path.join(cwd, 'actor.pth')
+        print(f"| load actor from: {model_path}")
+        actor.load_state_dict(
+            torch.load(model_path, map_location='cpu')
+        )
 
-        # test on the testing env
-        _torch = torch
-        state = environment.reset()[0]
-        episode_returns = []  # the cumulative_return / initial_account
-        episode_total_assets = [environment.initial_total_asset]
+        state, done = environment.reset()[0], False
+        episode_returns, episode_total_assets = [], [
+            environment.initial_total_asset
+        ]
 
-        with _torch.no_grad():
-            for i in range(environment.max_step):
-                s_tensor = _torch.as_tensor((state,), device=device)
-                a_tensor = act(s_tensor)  # action_tanh = act.forward()
-                action = (
-                    a_tensor.detach().cpu().numpy()[0]
-                )  # not need detach(), because with torch.no_grad() outside
-                #print("ACTION: ", action) # Debugging step
-                state, reward, done, _, info = environment.step(action)
-
-                total_asset = (
-                    environment.amount
-                    + (
-                        environment.price_ary[environment.day]
-                        * environment.stocks
-                    ).sum()
-                )
-                episode_total_assets.append(total_asset)
-                episode_return = total_asset / environment.initial_total_asset
-                episode_returns.append(episode_return)
-
+        with torch.no_grad():
+            for _ in range(environment.max_step):
                 if done:
-                    environment.save_portfolio_value_log()
-                    environment.save_trade_log()
                     break
+                action = agent.act(
+                    torch.tensor([state], device=agent.device)
+                ).cpu().numpy()[0]
+                state, _, done, _, _ = environment.step(action)
+                current_asset = environment.calculate_total_asset()
+                episode_total_assets.append(current_asset)
+                episode_returns.append(
+                    current_asset / environment.initial_total_asset
+                )
 
-        # Calculate drawdown
-        initial_total_asset = episode_total_assets[0]
-        lowest_asset = min(episode_total_assets)
-        drawdown = (initial_total_asset - lowest_asset) / initial_total_asset
+        environment.save_portfolio_value_log()
+        environment.save_trade_log()
 
-        # Sharpe Ratio calculation
-        risk_free_rate = 0.0 # 0 for simplicity but consider aligning with 3 month T-bill
-        episode_returns_array = np.array(episode_returns)
-        mean_return = episode_returns_array.mean()
-        std_deviation = episode_returns_array.std()
+        min_asset, max_asset = min(episode_total_assets), episode_total_assets[0]
+        drawdown = (max_asset - min_asset) / max_asset
+        returns_np = np.array(episode_returns)
+        mean_return = returns_np.mean()
+        return_std = returns_np.std()
+        sharpe_ratio = (mean_return / return_std) if return_std else 0
 
-        if std_deviation == 0: # Avoid division by zero
-            sharpe_ratio = 0
-        else:
-            sharpe_ratio = (mean_return - risk_free_rate) / std_deviation
-
-        return episode_total_assets, episode_return, drawdown, sharpe_ratio
+        return episode_total_assets, episode_returns[-1], drawdown, sharpe_ratio

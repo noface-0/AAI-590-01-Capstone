@@ -16,19 +16,18 @@
 ---------------------------------------------------------------------------------------
 ## Table Of Contents
  - Profile: Profile code and sample data files
- - agents: PPO, SAC, DRL, Base
+ - agents: PPO, SAC, DRL, TD3, Base
  - assets: Visuals
- - config: deployment code, GA code
+ - config: base configurations for training and DRL model parameters
  - dataprocessing: (research.ipynb) Process data in progress, EDA, ETL, SageMaker, Heatmaps
- - deployments: integrating GA portfolio optimization, integrating GA portfolio optimization, Deployment code
+ - deployments: Deployment code to AWS
  - documentation: project documentation, work documentation
- - environments: integrating scalers, creating devcontainer, deployment code
- - models: integrating GA portfolio optimization in folder runs/fnn, adding in feed forward NN layer, 	
-		integrating scalers
+ - environments: environments for DRL learning and paper trading.
+ - models: base implementations of FNN, GA, and MLP. Includes model evaluations and storage for pytorch models (git ignored).
 - pipelines: evaluations, deployment code
-- processing: integrating GA portfolio optimization, deployment code
-- training: integrating GA portfolio optimization in fnn and drl
-- utils: integrating GA portfolio optimization, deployment code
+- processing: ingestion code from alpaca and variable transformation automations
+- training: training code for all models
+- utils: minor utility functions used across repo
 - Group_Metting: Tracking group meeting notes
 - website: 
 

@@ -13,7 +13,12 @@ from config.base import Config
 
 
 class ActorPPO(nn.Module):
-    def __init__(self, dims: List[int], state_dim: int, action_dim: int):
+    def __init__(
+            self, 
+            dims: List[int], 
+            state_dim: int, 
+            action_dim: int
+    ):
         super().__init__()
         self.net = build_mlp(
             [state_dim, *dims, action_dim], 
@@ -27,7 +32,9 @@ class ActorPPO(nn.Module):
     def forward(self, state: Tensor) -> Tensor:
         return self.net(state).tanh()  # action.tanh()
 
-    def get_action(self, state: Tensor) -> Tuple[Tensor, Tensor]:  # for exploration
+    def get_action(
+            self, state: Tensor
+    ) -> Tuple[Tensor, Tensor]:  # for exploration
         action_avg = self.net(state)
         action_std = self.action_std_log.exp()
 
@@ -53,7 +60,12 @@ class ActorPPO(nn.Module):
 
 
 class CriticPPO(nn.Module):
-    def __init__(self, dims: List[int], state_dim: int, _action_dim: int):
+    def __init__(
+            self, 
+            dims: List[int], 
+            state_dim: int, 
+            _action_dim: int
+    ):
         super().__init__()
         self.net = build_mlp(
             [state_dim, *dims, 1], 
@@ -77,7 +89,9 @@ class AgentPPO(AgentBase):
         self.if_off_policy = False
         self.act_class = getattr(self, "act_class", ActorPPO)
         self.cri_class = getattr(self, "cri_class", CriticPPO)
-        AgentBase.__init__(self, net_dims, state_dim, action_dim, gpu_id, args)
+        AgentBase.__init__(
+            self, net_dims, state_dim, action_dim, gpu_id, args
+        )
 
         self.ratio_clip = getattr(args, "ratio_clip", 0.2)  # `ratio.clamp(1 - clip, 1 + clip)`
         self.lambda_gae_adv = getattr(args, "lambda_gae_adv", 0.95)  # could be 0.80~0.99
@@ -143,7 +157,9 @@ class AgentPPO(AgentBase):
             ]
             values = torch.cat(values, dim=0).squeeze(1)  # values.shape == (buffer_size, )
 
-            advantages = self.get_advantages(rewards, undones, values)  # advantages.shape == (buffer_size, )
+            advantages = self.get_advantages(
+                rewards, undones, values
+            )  # advantages.shape == (buffer_size, )
             reward_sums = advantages + values  # reward_sums.shape == (buffer_size, )
             del rewards, undones, values
 

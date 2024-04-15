@@ -16,6 +16,24 @@ BASE_DIR = os.path.dirname(
 )
 
 
+def prepare_data(
+        dataprocessor: AlpacaProcessor,
+        df: pd.DataFrame,
+        if_vix: bool=True
+):
+    data = dataprocessor.clean_data(df)
+
+    if if_vix:
+        data = dataprocessor.add_vix(data)
+    else:
+        data = dataprocessor.add_turbulence(data)
+
+    data = dataprocessor.add_technical_indicators(data)
+    data = dataprocessor.preprocess_data(data)
+
+    return data
+
+
 def train(
     start_date,
     end_date,
@@ -41,7 +59,7 @@ def train(
         api_url, 
         save_scaler=True,
         time_interval=time_interval
-    )
+    )    
 
     if data.empty:
         # download data
@@ -61,17 +79,11 @@ def train(
         data = train_data
 
     if process_data:
-        data = dp.clean_data(data)
-
-        if if_vix:
-            data = dp.add_vix(data)
-            # add vix to indicators here
-        else:
-            # add turbulence to indicators here
-            data = dp.add_turbulence(data)
-
-        data = dp.add_technical_indicators(data)
-        data = dp.preprocess_data(data)
+        data = prepare_data(
+            dataprocessor=dp,
+            df=data,
+            if_vix=if_vix
+        )
 
     price_array, tech_array, turbulence_array = dp.df_to_array(
         data, 
@@ -155,15 +167,11 @@ def test(
             data = test_data
 
     if process_data:
-        data = dp.clean_data(data)
-
-        if if_vix:
-            data = dp.add_vix(data)
-        else:
-            data = dp.add_turbulence(data)
-
-        data = dp.add_technical_indicators(data)
-        data = dp.preprocess_data(data)
+        data = prepare_data(
+            dataprocessor=dp,
+            df=data,
+            if_vix=if_vix
+        )
 
     price_array, tech_array, turbulence_array = dp.df_to_array(
         data, 
