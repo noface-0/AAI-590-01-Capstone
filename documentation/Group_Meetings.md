@@ -63,3 +63,19 @@ Index (D=Discussion, B=Brainstorm, A=Adam, J=Javon, N=Nathan)
 - Complete the documentation pieces
 - Set next meeting 4/14/24
 
+## Team meeting #7 Date 4/14/2024
+- Go over progress: all code completion verification
+- Review Table of Contents for GitHub navigation
+- Update project document sections with Prof. Marbut's remarks-create final version
+- Finalize PP for presentation
+- Finalize video presentation buildout and editing
+
+## Final conversations 4/15/2024
+- Final GitHub review
+- Final project document review
+- Final presentation review (video and PP)
+- Zip Code folder
+- Zip video, upload to YouTube channel
+- Submit all assignments
+- END
+
